@@ -12,6 +12,10 @@ class ActiveStoryManager(models.Manager):
 class Story(models.Model):
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='stories')
     media_file = models.FileField(upload_to='stories/')
+    music_url = models.CharField(max_length=500, blank=True, default='')
+    music_title = models.CharField(max_length=200, blank=True, default='')
+    filter_style = models.CharField(max_length=100, blank=True, default='')
+    animation_style = models.CharField(max_length=100, blank=True, default='')
     created_at = models.DateTimeField(auto_now_add=True)
 
     objects = models.Manager() # Default manager

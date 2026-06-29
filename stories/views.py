@@ -35,7 +35,19 @@ def stories_list_create_api(request):
         if not media_file:
             return Response({"error": "Media file is required"}, status=400)
             
-        story = Story.objects.create(author=request.user, media_file=media_file)
+        music_url = request.data.get('music_url', '')
+        music_title = request.data.get('music_title', '')
+        filter_style = request.data.get('filter_style', '')
+        animation_style = request.data.get('animation_style', '')
+
+        story = Story.objects.create(
+            author=request.user, 
+            media_file=media_file,
+            music_url=music_url,
+            music_title=music_title,
+            filter_style=filter_style,
+            animation_style=animation_style
+        )
         serializer = StorySerializer(story, context={'request': request})
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 

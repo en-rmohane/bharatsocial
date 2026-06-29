@@ -18,7 +18,7 @@ class StorySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Story
-        fields = ('id', 'author', 'author_username', 'author_avatar', 'media_file', 'is_video', 'reactions', 'views_count', 'has_viewed', 'created_at')
+        fields = ('id', 'author', 'author_username', 'author_avatar', 'media_file', 'is_video', 'reactions', 'views_count', 'has_viewed', 'music_url', 'music_title', 'filter_style', 'animation_style', 'created_at')
 
     def get_views_count(self, obj):
         return obj.views.count()

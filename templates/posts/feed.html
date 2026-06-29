@@ -89,6 +89,10 @@
         "author_avatar": "{{ story.author.profile.avatar.url }}",
         "media_file": "{{ story.media_file.url }}",
         "is_video": {% if story.is_video %}true{% else %}false{% endif %},
+        "music_url": "{{ story.music_url|escapejs }}",
+        "music_title": "{{ story.music_title|escapejs }}",
+        "filter_style": "{{ story.filter_style|escapejs }}",
+        "animation_style": "{{ story.animation_style|escapejs }}",
         "created_at": "{{ story.created_at.isoformat }}"
     }{% if not forloop.last %},{% endif %}
     {% endfor %}
@@ -156,26 +160,7 @@
         if (input.files.length === 0) return;
 
         const file = input.files[0];
-        const csrfToken = getCookie('csrftoken');
-        const formData = new FormData();
-        formData.append('media_file', file);
-
-        fetch('/api/stories/', {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': csrfToken
-            },
-            body: formData
-        })
-        .then(res => {
-            if (res.ok) {
-                alert('Story uploaded successfully!');
-                window.location.reload();
-            } else {
-                alert('Upload failed.');
-            }
-        })
-        .catch(err => console.error('Story upload error:', err));
+        openStoryEditor(file);
     }
 
     // Set Your Story state dynamically on load
