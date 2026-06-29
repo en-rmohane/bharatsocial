@@ -559,6 +559,27 @@ let recordedSnapBlob = null;
 let recordingCountdownInterval = null;
 const SNAP_RECORDING_DURATION = 5000; // 5 seconds maximum
 
+// AR props variables
+let selectedARProp = 'none';
+let selectedARPropEmoji = '';
+let propXOffset = 0;
+let propYOffset = -40; // centered slightly up (for glasses/nose/crown relative to center)
+let propScale = 1.0;
+let canvasAnimationId = null;
+
+const AR_PROPS = [
+    { id: 'none', name: '❌ Clear Mask', emoji: '' },
+    { id: 'goggles', name: '🕶️ Cool Shades', emoji: '🕶️' },
+    { id: 'crown', name: '👑 Royal Crown', emoji: '👑' },
+    { id: 'hat', name: '🎩 Retro Hat', emoji: '🎩' },
+    { id: 'catears', name: '🐱 Cat Ears', emoji: '🐱' },
+    { id: 'bow', name: '🎀 Pink Bow', emoji: '🎀' },
+    { id: 'horns', name: '😈 Neon Horns', emoji: '😈' },
+    { id: 'glasses', name: '👓 Nerd Glasses', emoji: '👓' },
+    { id: 'mask', name: '🎭 Carnival Mask', emoji: '🎭' },
+    { id: 'starglasses', name: '🌟 Star Glasses', emoji: '🌟' }
+];
+
 // Generate 300 Snapchat filters/lenses procedurally
 const SNAP_LENSES = [];
 function generateLenses() {
@@ -608,6 +629,92 @@ function generateLenses() {
     }
 }
 
+function startCanvasDrawLoop() {
+    const canvas = document.getElementById('snap-camera-canvas');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const video = document.getElementById('snap-webcam-preview');
+    
+    function drawFrame() {
+        if (!localCameraStream || video.paused || video.ended) {
+            canvasAnimationId = null;
+            return;
+        }
+        
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // 1. Apply selected CSS lens color filters to the feed frame
+        const selectedLens = SNAP_LENSES.find(l => l.id === selectedSnapFilter);
+        ctx.filter = selectedLens ? selectedLens.css : 'none';
+        
+        // Draw raw video webcam frames
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        // 2. Draw AR Mask Emoji overlay (Reset filter first so colors match!)
+        ctx.filter = 'none';
+        if (selectedARProp !== 'none' && selectedARPropEmoji !== '') {
+            ctx.save();
+            ctx.font = `${80 * propScale}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            
+            // Draw vector emoji onto canvas center adjusted with custom offsets
+            ctx.fillText(selectedARPropEmoji, (canvas.width / 2) + propXOffset, (canvas.height / 2) + propYOffset);
+            ctx.restore();
+        }
+        
+        canvasAnimationId = requestAnimationFrame(drawFrame);
+    }
+    
+    if (canvasAnimationId) cancelAnimationFrame(canvasAnimationId);
+    canvasAnimationId = requestAnimationFrame(drawFrame);
+}
+
+function selectARProp(propId) {
+    selectedARProp = propId;
+    const propObj = AR_PROPS.find(p => p.id === propId);
+    selectedARPropEmoji = propObj ? propObj.emoji : '';
+    
+    // Update active class in props carousel
+    const items = document.querySelectorAll('.snap-prop-item');
+    items.forEach((item, idx) => {
+        const pObj = AR_PROPS[idx];
+        if (pObj && pObj.id === propId) {
+            item.classList.add('active');
+            item.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        } else {
+            item.classList.remove('active');
+        }
+    });
+
+    // Display / Hide controls overlay
+    const adjustControls = document.getElementById('snap-adjust-controls');
+    if (propId !== 'none') {
+        adjustControls.style.display = 'flex';
+    } else {
+        adjustControls.style.display = 'none';
+    }
+}
+
+function adjustARProp(action) {
+    if (selectedARProp === 'none') return;
+    
+    const step = 8;
+    const scaleStep = 0.08;
+    
+    if (action === 'up') propYOffset -= step;
+    else if (action === 'down') propYOffset += step;
+    else if (action === 'left') propXOffset -= step;
+    else if (action === 'right') propXOffset += step;
+    else if (action === 'scaleUp') propScale = Math.min(2.5, propScale + scaleStep);
+    else if (action === 'scaleDown') propScale = Math.max(0.4, propScale - scaleStep);
+    else if (action === 'reset') {
+        propXOffset = 0;
+        propYOffset = -40;
+        propScale = 1.0;
+    }
+}
+
 function openSnapchatCamera() {
     if (!activeUsername) {
         alert("Please select a user to send the snap to first!");
@@ -618,6 +725,10 @@ function openSnapchatCamera() {
     
     const modal = document.getElementById('snapchat-camera-modal');
     modal.style.display = 'flex';
+    
+    // Reset canvas display & preview controls
+    document.getElementById('snap-camera-canvas').style.display = 'block';
+    document.getElementById('snap-recorded-preview').style.display = 'none';
     
     // Populate lenses carousel
     const carousel = document.getElementById('snap-lenses-carousel');
@@ -641,6 +752,21 @@ function openSnapchatCamera() {
         carousel.appendChild(item);
     });
     
+    // Populate props carousel
+    const propsCarousel = document.getElementById('snap-props-carousel');
+    propsCarousel.innerHTML = '';
+    
+    AR_PROPS.forEach((prop, index) => {
+        const item = document.createElement('div');
+        item.className = `snap-prop-item ${prop.id === 'none' ? 'active' : ''}`;
+        item.innerHTML = `<span style="font-size:16px; margin-bottom: 2px;">${prop.emoji || '❌'}</span><span style="font-size:7px; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%;">${prop.name}</span>`;
+        item.onclick = (e) => {
+            e.stopPropagation();
+            selectARProp(prop.id);
+        };
+        propsCarousel.appendChild(item);
+    });
+    
     // Start webcam preview
     navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: 640, height: 480 },
@@ -651,7 +777,12 @@ function openSnapchatCamera() {
         const previewEl = document.getElementById('snap-webcam-preview');
         previewEl.srcObject = stream;
         previewEl.muted = true;
-        previewEl.play().catch(e => console.debug("Camera play error:", e));
+        
+        previewEl.onloadedmetadata = () => {
+            previewEl.play().then(() => {
+                startCanvasDrawLoop();
+            });
+        };
     })
     .catch(err => {
         console.error("Webcam access failed:", err);
@@ -663,6 +794,11 @@ function openSnapchatCamera() {
 function closeSnapchatCamera() {
     const modal = document.getElementById('snapchat-camera-modal');
     if (modal) modal.style.display = 'none';
+    
+    if (canvasAnimationId) {
+        cancelAnimationFrame(canvasAnimationId);
+        canvasAnimationId = null;
+    }
     
     // Stop recording timer
     if (recordingCountdownInterval) {
@@ -683,13 +819,21 @@ function closeSnapchatCamera() {
         recordedPreview.src = '';
     }
     
+    // Hide controls & reset prop selections
+    document.getElementById('snap-adjust-controls').style.display = 'none';
+    selectedARProp = 'none';
+    selectedARPropEmoji = '';
+    propXOffset = 0;
+    propYOffset = -40;
+    propScale = 1.0;
+    
     retakeSnap();
 }
 
 function selectSnapLens(lensId) {
     selectedSnapFilter = lensId;
     
-    // Update active class in carousel
+    // Update active class in lenses carousel
     const items = document.querySelectorAll('.snap-lens-item');
     items.forEach((item, idx) => {
         const lensObj = SNAP_LENSES[idx];
@@ -700,20 +844,20 @@ function selectSnapLens(lensId) {
             item.classList.remove('active');
         }
     });
-    
-    // Get style
-    const selectedLens = SNAP_LENSES.find(l => l.id === lensId);
-    const cssStyle = selectedLens ? selectedLens.css : '';
-    
-    // Apply filters
-    const webcamPreview = document.getElementById('snap-webcam-preview');
-    const recordedPreview = document.getElementById('snap-recorded-preview');
-    if (webcamPreview) webcamPreview.style.filter = cssStyle;
-    if (recordedPreview) recordedPreview.style.filter = cssStyle;
 }
 
 function toggleSnapRecording() {
-    if (!localCameraStream) return;
+    const canvas = document.getElementById('snap-camera-canvas');
+    if (!canvas || !localCameraStream) return;
+    
+    // Capture real-time frames from drawing canvas (30 FPS)
+    const canvasStream = canvas.captureStream(30);
+    
+    // Add microphone audio tracks to the canvas video stream
+    const audioTracks = localCameraStream.getAudioTracks();
+    if (audioTracks.length > 0) {
+        canvasStream.addTrack(audioTracks[0]);
+    }
     
     recordedChunks = [];
     let options = { mimeType: 'video/webm;codecs=vp9,opus' };
@@ -725,9 +869,9 @@ function toggleSnapRecording() {
     }
     
     try {
-        mediaRecorderInstance = new MediaRecorder(localCameraStream, options);
+        mediaRecorderInstance = new MediaRecorder(canvasStream, options);
     } catch (e) {
-        mediaRecorderInstance = new MediaRecorder(localCameraStream);
+        mediaRecorderInstance = new MediaRecorder(canvasStream);
     }
     
     mediaRecorderInstance.ondataavailable = (event) => {
@@ -739,10 +883,10 @@ function toggleSnapRecording() {
     mediaRecorderInstance.onstop = () => {
         recordedSnapBlob = new Blob(recordedChunks, { type: mediaRecorderInstance.mimeType });
         
-        // Hide webcam preview and show recorded video preview
-        const webcamPreview = document.getElementById('snap-webcam-preview');
+        // Hide canvas preview and show recorded video preview
+        const canvasPreview = document.getElementById('snap-camera-canvas');
         const recordedPreview = document.getElementById('snap-recorded-preview');
-        webcamPreview.style.display = 'none';
+        canvasPreview.style.display = 'none';
         recordedPreview.style.display = 'block';
         recordedPreview.src = URL.createObjectURL(recordedSnapBlob);
         recordedPreview.play().catch(e => console.debug("Preview video error:", e));
@@ -752,8 +896,10 @@ function toggleSnapRecording() {
         document.getElementById('snap-send-btn').style.display = 'block';
         document.getElementById('snap-retake-btn').style.display = 'block';
         
-        // Hide lenses carousel during preview
+        // Hide lenses carousel & controls during preview
         document.getElementById('snap-lenses-carousel').style.display = 'none';
+        document.getElementById('snap-props-carousel').style.display = 'none';
+        document.getElementById('snap-adjust-controls').style.display = 'none';
         document.getElementById('snap-countdown-overlay').style.display = 'none';
     };
     
@@ -797,9 +943,9 @@ function retakeSnap() {
     }
     
     // Hide previews, clear fields
-    const webcamPreview = document.getElementById('snap-webcam-preview');
+    const canvasPreview = document.getElementById('snap-camera-canvas');
     const recordedPreview = document.getElementById('snap-recorded-preview');
-    webcamPreview.style.display = 'block';
+    canvasPreview.style.display = 'block';
     recordedPreview.style.display = 'none';
     recordedPreview.pause();
     recordedPreview.src = '';
@@ -811,8 +957,16 @@ function retakeSnap() {
     document.getElementById('snap-retake-btn').style.display = 'none';
     
     document.getElementById('snap-lenses-carousel').style.display = 'flex';
+    document.getElementById('snap-props-carousel').style.display = 'flex';
+    if (selectedARProp !== 'none') {
+        document.getElementById('snap-adjust-controls').style.display = 'flex';
+    }
     document.getElementById('snap-countdown-overlay').style.display = 'none';
     recordedSnapBlob = null;
+    
+    if (localCameraStream && !canvasAnimationId) {
+        startCanvasDrawLoop();
+    }
 }
 
 function sendSnapToActiveThread() {
@@ -826,14 +980,19 @@ function sendSnapToActiveThread() {
     const formData = new FormData();
     // Convert WebM recorded snap to a file
     const file = new File([recordedSnapBlob], `snap_${Date.now()}.webm`, { type: recordedSnapBlob.type });
-    formData.append('image', file); // We reuse the image field which supports files/videos
+    formData.append('image', file); 
     formData.append('is_snap', 'true');
     
-    // Save chosen filter settings in content field so client plays it with the exact selected style
+    // Save chosen lens & prop settings in content field so client plays it with the exact selected style
     const selectedLens = SNAP_LENSES.find(l => l.id === selectedSnapFilter);
     const filterConfig = {
         filterId: selectedSnapFilter,
-        css: selectedLens ? selectedLens.css : ''
+        css: selectedLens ? selectedLens.css : '',
+        propId: selectedARProp,
+        propEmoji: selectedARPropEmoji,
+        propX: propXOffset,
+        propY: propYOffset,
+        propScale: propScale
     };
     formData.append('content', JSON.stringify(filterConfig));
 
@@ -864,9 +1023,17 @@ function sendSnapToActiveThread() {
 
 function playSnapMessage(msgId, videoUrl, filterConfigJsonStr) {
     let filterCss = '';
+    let propEmoji = '';
+    let propX = 0;
+    let propY = -40;
+    let propScale = 1.0;
     try {
         const config = JSON.parse(decodeURIComponent(filterConfigJsonStr));
         filterCss = config.css || '';
+        propEmoji = config.propEmoji || '';
+        propX = config.propX || 0;
+        propY = config.propY || -40;
+        propScale = config.propScale || 1.0;
     } catch(e) {}
     
     // Create Snap Player modal on the fly
@@ -889,6 +1056,13 @@ function playSnapMessage(msgId, videoUrl, filterConfigJsonStr) {
     player.innerHTML = `
         <div style="position: relative; width: 100%; max-width: 420px; height: 100vh; display: flex; align-items: center; justify-content: center;">
             <video src="${videoUrl}" autoplay playsinline style="width: 100%; height: 100%; object-fit: contain; filter: ${filterCss};" id="snap-play-video"></video>
+            
+            <!-- Prop Overlay Badge during playback -->
+            ${propEmoji ? `
+                <div style="position: absolute; pointer-events: none; text-align: center; font-size: ${80 * propScale}px; transform: translate(${propX}px, ${propY}px); z-index: 2010; color: white;">
+                    ${propEmoji}
+                </div>
+            ` : ''}
             
             <!-- Floating Timer Indicator -->
             <div style="position: absolute; top: 20px; right: 20px; background-color: rgba(0,0,0,0.6); padding: 8px 16px; border-radius: 20px; font-weight: 700; color: #fffc00; font-size: 13px;" id="snap-play-timer">
