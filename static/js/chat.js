@@ -562,6 +562,7 @@ const SNAP_RECORDING_DURATION = 5000; // 5 seconds maximum
 // AR props variables
 let selectedARProp = 'none';
 let selectedARPropEmoji = '';
+let selectedARPropImg = '';
 let propXOffset = 0;
 let propYOffset = -40; // centered slightly up (for glasses/nose/crown relative to center)
 let propScale = 1.0;
@@ -569,65 +570,99 @@ let canvasAnimationId = null;
 let clmTrackerInstance = null;
 let trackerActive = false;
 
+// Preloaded filter images cache
+let preloadedFilterImages = {};
+
+function preloadFilterImages() {
+    const assets = {
+        'dog_face': '/static/filters/dog_face_filter.png',
+        'glasses': '/static/filters/glasses.png',
+        'glasses1': '/static/filters/glasses1.png',
+        'glasses2': '/static/filters/glasses2.png',
+        'glasses3': '/static/filters/glasses3.png',
+        'moustache': '/static/filters/moustache.png',
+        'mustache1': '/static/filters/mustache1.png',
+        'cowboy_hat': '/static/filters/cowboy_hat.png',
+        'left_eye': '/static/filters/left_eye.png',
+        'right_eye': '/static/filters/right_eye.png'
+    };
+    
+    for (let key in assets) {
+        if (!preloadedFilterImages[key]) {
+            const img = new Image();
+            img.src = assets[key];
+            preloadedFilterImages[key] = img;
+        }
+    }
+}
+
 const AR_PROPS = [
-    { id: 'none', name: '❌ Clear Mask', emoji: '' },
-    // --- Glasses & Eyewear (15 items) ---
-    { id: 'goggles', name: '🕶️ Cool Shades', emoji: '🕶️' },
-    { id: 'glasses', name: '👓 Nerd Glasses', emoji: '👓' },
-    { id: 'starglasses', name: '🌟 Star Glasses', emoji: '🌟' },
-    { id: 'heartglasses', name: '❤️ Heart Eyes', emoji: '❤️' },
-    { id: 'pinkshades', name: '🕶️🌸 Pink Shades', emoji: '🕶️' },
-    { id: 'anime-eyes', name: '👀 Anime Eyes', emoji: '👀' },
-    { id: 'monocle', name: '🧐 Monocle Glass', emoji: '🧐' },
-    { id: 'thuglife', name: '🕶️ Thug Life', emoji: '🕶️' },
-    { id: 'fire-eyes', name: '🔥 Fire Eyes', emoji: '🔥' },
-    { id: 'money-eyes', name: '🤑 Dollar Eyes', emoji: '🤑' },
-    { id: 'rainbow-glasses', name: '🌈 Rainbow Visor', emoji: '🥽' },
-    { id: 'cyber-visor', name: '🤖 Cyber Goggles', emoji: '🥽' },
-    { id: 'alien-visor', name: '👽 Alien Visor', emoji: '🥽' },
-    { id: '3d-glasses', name: '🕶️ 3D Glasses', emoji: '🕶️' },
-    { id: 'pirate-patch', name: '🏴‍☠️ Pirate Patch', emoji: '👁️‍🗨️' },
+    { id: 'none', name: '❌ Clear Mask', emoji: '', img: '' },
+    // --- Premium OpenCV PNG Filters ---
+    { id: 'dog_face', name: '🐶 Dog Ears & Nose', emoji: '', img: 'dog_face' },
+    { id: 'cowboy_hat', name: '🤠 Cowboy Hat', emoji: '', img: 'cowboy_hat' },
+    { id: 'glasses', name: '🕶️ VIP Sunglasses', emoji: '', img: 'glasses' },
+    { id: 'glasses1', name: '🕶️ Steampunk Glass', emoji: '', img: 'glasses1' },
+    { id: 'glasses2', name: '🕶️ Retro Wayfarer', emoji: '', img: 'glasses2' },
+    { id: 'glasses3', name: '🕶️ Cyber Visor', emoji: '', img: 'glasses3' },
+    { id: 'moustache', name: '👨 Gentleman Mustache', emoji: '', img: 'moustache' },
+    { id: 'mustache1', name: '👨 Handlebar Mustache', emoji: '', img: 'mustache1' },
+    { id: 'fire_eyes', name: '🔥 Devil Fire Eyes', emoji: '', img: 'fire_eyes' },
+    
+    // --- Glasses & Eyewear (Emojis) ---
+    { id: 'starglasses', name: '🌟 Star Glasses', emoji: '🌟', img: '' },
+    { id: 'heartglasses', name: '❤️ Heart Eyes', emoji: '❤️', img: '' },
+    { id: 'pinkshades', name: '🕶️🌸 Pink Shades', emoji: '🕶️', img: '' },
+    { id: 'anime-eyes', name: '👀 Anime Eyes', emoji: '👀', img: '' },
+    { id: 'monocle', name: '🧐 Monocle Glass', emoji: '🧐', img: '' },
+    { id: 'thuglife', name: '🕶️ Thug Life', emoji: '🕶️', img: '' },
+    { id: 'fire-eyes', name: '🔥 Fire Eyes', emoji: '🔥', img: '' },
+    { id: 'money-eyes', name: '🤑 Dollar Eyes', emoji: '🤑', img: '' },
+    { id: 'rainbow-glasses', name: '🌈 Rainbow Visor', emoji: '🥽', img: '' },
+    { id: 'cyber-visor', name: '🤖 Cyber Goggles', emoji: '🥽', img: '' },
+    { id: 'alien-visor', name: '👽 Alien Visor', emoji: '🥽', img: '' },
+    { id: '3d-glasses', name: '🕶️ 3D Glasses', emoji: '🕶️', img: '' },
+    { id: 'pirate-patch', name: '🏴‍☠️ Pirate Patch', emoji: '👁️‍🗨️', img: '' },
 
-    // --- Hats & Crowns (15 items) ---
-    { id: 'crown', name: '👑 Royal Crown', emoji: '👑' },
-    { id: 'hat', name: '🎩 Retro Hat', emoji: '🎩' },
-    { id: 'tiara', name: '👑✨ Princess Tiara', emoji: '👑' },
-    { id: 'heart-crown', name: '👑💕 Heart Crown', emoji: '👑' },
-    { id: 'flower-crown', name: '🌸👑 Flower Tiara', emoji: '👑' },
-    { id: 'chef-hat', name: '👨‍🍳 Chef Hat', emoji: '👨‍🍳' },
-    { id: 'cowboy-hat', name: '🤠 Cowboy Hat', emoji: '🤠' },
-    { id: 'santa-hat', name: '🎅 Santa Hat', emoji: '🎅' },
-    { id: 'graduation-cap', name: '🎓 Graduate Cap', emoji: '🎓' },
-    { id: 'witch-hat', name: '🧙 Witch Hat', emoji: '🧙' },
-    { id: 'military-helmet', name: '🪖 Commando Cap', emoji: '🪖' },
-    { id: 'police-cap', name: '👮 Police Cap', emoji: '👮' },
-    { id: 'birthday-cap', name: '🥳 Party Cap', emoji: '🥳' },
-    { id: 'halo', name: '😇 Angel Halo', emoji: '😇' },
-    { id: 'turband', name: '👳 Desi Turban', emoji: '👳' },
+    // --- Hats & Crowns (Emojis) ---
+    { id: 'crown', name: '👑 Royal Crown', emoji: '👑', img: '' },
+    { id: 'hat', name: '🎩 Retro Hat', emoji: '🎩', img: '' },
+    { id: 'tiara', name: '👑✨ Princess Tiara', emoji: '👑', img: '' },
+    { id: 'heart-crown', name: '👑💕 Heart Crown', emoji: '👑', img: '' },
+    { id: 'flower-crown', name: '🌸👑 Flower Tiara', emoji: '👑', img: '' },
+    { id: 'chef-hat', name: '👨‍🍳 Chef Hat', emoji: '👨‍🍳', img: '' },
+    { id: 'santa-hat', name: '🎅 Santa Hat', emoji: '🎅', img: '' },
+    { id: 'graduation-cap', name: '🎓 Graduate Cap', emoji: '🎓', img: '' },
+    { id: 'witch-hat', name: '🧙 Witch Hat', emoji: '🧙', img: '' },
+    { id: 'military-helmet', name: '🪖 Commando Cap', emoji: '🪖', img: '' },
+    { id: 'police-cap', name: '👮 Police Cap', emoji: '👮', img: '' },
+    { id: 'birthday-cap', name: '🥳 Party Cap', emoji: '🥳', img: '' },
+    { id: 'halo', name: '😇 Angel Halo', emoji: '😇', img: '' },
+    { id: 'turband', name: '👳 Desi Turban', emoji: '👳', img: '' },
 
-    // --- Animals & Face Features (10 items) ---
-    { id: 'catears', name: '🐱 Cat Ears', emoji: '🐱' },
-    { id: 'dogears', name: '🐶 Dog Ears', emoji: '🐶' },
-    { id: 'bunny-ears', name: '🐰 Bunny Ears', emoji: '🐰' },
-    { id: 'horns', name: '😈 Neon Horns', emoji: '😈' },
-    { id: 'mustache', name: '👨 Gentleman Mustache', emoji: '👨' },
-    { id: 'clown-nose', name: '🤡 Clown Nose', emoji: '🤡' },
-    { id: 'fox-ears', name: '🦊 Fox Ears', emoji: '🦊' },
-    { id: 'panda-face', name: '🐼 Panda Mask', emoji: '🐼' },
-    { id: 'lion-mane', name: '🦁 Lion Mane', emoji: '🦁' },
-    { id: 'monkey-face', name: '🐵 Monkey Mask', emoji: '🐵' },
+    // --- Animals & Face Features (Emojis) ---
+    { id: 'catears', name: '🐱 Cat Ears', emoji: '🐱', img: '' },
+    { id: 'dogears', name: '🐶 Dog Ears', emoji: '🐶', img: '' },
+    { id: 'bunny-ears', name: '🐰 Bunny Ears', emoji: '🐰', img: '' },
+    { id: 'horns', name: '😈 Neon Horns', emoji: '😈', img: '' },
+    { id: 'mustache', name: '👨 Gentleman Mustache', emoji: '👨', img: '' },
+    { id: 'clown-nose', name: '🤡 Clown Nose', emoji: '🤡', img: '' },
+    { id: 'fox-ears', name: '🦊 Fox Ears', emoji: '🦊', img: '' },
+    { id: 'panda-face', name: '🐼 Panda Mask', emoji: '🐼', img: '' },
+    { id: 'lion-mane', name: '🦁 Lion Mane', emoji: '🦁', img: '' },
+    { id: 'monkey-face', name: '🐵 Monkey Mask', emoji: '🐵', img: '' },
 
-    // --- Funny Masks & Overlays (10 items) ---
-    { id: 'mask', name: '🎭 Carnival Mask', emoji: '🎭' },
-    { id: 'gas-mask', name: '😷 Gas Mask', emoji: '😷' },
-    { id: 'skull-mask', name: '💀 Skull Face', emoji: '💀' },
-    { id: 'alien-face', name: '👽 Alien Face', emoji: '👽' },
-    { id: 'robot-face', name: '🤖 Robot Mask', emoji: '🤖' },
-    { id: 'pumpkin-head', name: '🎃 Pumpkin Head', emoji: '🎃' },
-    { id: 'ghost-mask', name: '👻 Ghost Mask', emoji: '👻' },
-    { id: 'star-crown', name: '✨ Star Aura', emoji: '✨' },
-    { id: 'butterfly-crown', name: '🦋 Butterfly Tiara', emoji: '🦋' },
-    { id: 'heart-aura', name: '💖 Heart Aura', emoji: '💖' }
+    // --- Funny Masks & Overlays (Emojis) ---
+    { id: 'mask', name: '🎭 Carnival Mask', emoji: '🎭', img: '' },
+    { id: 'gas-mask', name: '😷 Gas Mask', emoji: '😷', img: '' },
+    { id: 'skull-mask', name: '💀 Skull Face', emoji: '💀', img: '' },
+    { id: 'alien-face', name: '👽 Alien Face', emoji: '👽', img: '' },
+    { id: 'robot-face', name: '🤖 Robot Mask', emoji: '🤖', img: '' },
+    { id: 'pumpkin-head', name: '🎃 Pumpkin Head', emoji: '🎃', img: '' },
+    { id: 'ghost-mask', name: '👻 Ghost Mask', emoji: '👻', img: '' },
+    { id: 'star-crown', name: '✨ Star Aura', emoji: '✨', img: '' },
+    { id: 'butterfly-crown', name: '🦋 Butterfly Tiara', emoji: '🦋', img: '' },
+    { id: 'heart-aura', name: '💖 Heart Aura', emoji: '💖', img: '' }
 ];
 
 // Generate 300 Snapchat filters/lenses procedurally
@@ -702,11 +737,15 @@ function startCanvasDrawLoop() {
         
         // 2. Draw AR Mask Emoji overlay (Reset filter first so colors match!)
         ctx.filter = 'none';
-        if (selectedARProp !== 'none' && selectedARPropEmoji !== '') {
+        if (selectedARProp !== 'none' && (selectedARPropEmoji !== '' || selectedARPropImg !== '')) {
             let centerX = canvas.width / 2;
             let centerY = canvas.height / 2 - 40;
             let currentScale = propScale;
             let currentAngle = 0;
+            
+            let lex = 0, ley = 0, rex = 0, rey = 0;
+            let noseX = 0, noseY = 0, foreheadX = 0, foreheadY = 0;
+            let eyeDist = 45; // default fallback distance
             
             // Check if clmtrackr has found the face coordinates
             let faceTracked = false;
@@ -714,36 +753,49 @@ function startCanvasDrawLoop() {
                 const positions = clmTrackerInstance.getCurrentPosition();
                 if (positions && positions.length > 62) {
                     faceTracked = true;
-                    const lex = positions[27][0];
-                    const ley = positions[27][1];
-                    const rex = positions[32][0];
-                    const rey = positions[32][1];
-                    const noseX = positions[62][0];
-                    const noseY = positions[62][1];
-                    const foreheadX = positions[33][0];
-                    const foreheadY = positions[33][1];
+                    lex = positions[27][0];
+                    ley = positions[27][1];
+                    rex = positions[32][0];
+                    rey = positions[32][1];
+                    noseX = positions[62][0];
+                    noseY = positions[62][1];
+                    foreheadX = positions[33][0];
+                    foreheadY = positions[33][1];
                     
                     const dx = rex - lex;
                     const dy = rey - ley;
-                    const eyeDist = Math.sqrt(dx*dx + dy*dy);
+                    eyeDist = Math.sqrt(dx*dx + dy*dy);
                     currentAngle = Math.atan2(dy, dx);
                     
                     // Categorize props positioning dynamically based on type
                     const isHeadwear = ['crown', 'hat', 'tiara', 'heart-crown', 'flower-crown', 'chef-hat', 'cowboy-hat', 'santa-hat', 'graduation-cap', 'witch-hat', 'military-helmet', 'police-cap', 'birthday-cap', 'halo', 'turband', 'catears', 'dogears', 'bunny-ears', 'horns', 'fox-ears', 'star-crown', 'butterfly-crown', 'heart-aura'].includes(selectedARProp);
                     const isMouthnose = ['mustache', 'clown-nose', 'monkey-face', 'panda-face', 'lion-mane', 'gas-mask', 'skull-mask', 'robot-face', 'pumpkin-head', 'ghost-mask'].includes(selectedARProp);
                     
-                    if (isHeadwear) {
-                        // Place on top of forehead, scaled proportional to eye distance
+                    if (selectedARProp === 'dog_face') {
+                        centerX = foreheadX;
+                        centerY = foreheadY + (eyeDist * 0.1);
+                        currentScale = (eyeDist / 30) * propScale;
+                    } else if (selectedARProp === 'cowboy_hat') {
+                        centerX = foreheadX;
+                        centerY = foreheadY - (eyeDist * 0.55);
+                        currentScale = (eyeDist / 34) * propScale;
+                    } else if (selectedARProp.startsWith('glasses')) {
+                        centerX = (lex + rex) / 2;
+                        centerY = (ley + rey) / 2;
+                        currentScale = (eyeDist / 36) * propScale;
+                    } else if (selectedARProp === 'moustache' || selectedARProp === 'mustache1') {
+                        centerX = noseX;
+                        centerY = noseY + (eyeDist * 0.25);
+                        currentScale = (eyeDist / 36) * propScale;
+                    } else if (isHeadwear) {
                         centerX = foreheadX;
                         centerY = foreheadY - (eyeDist * 0.95);
                         currentScale = (eyeDist / 38) * propScale;
                     } else if (isMouthnose) {
-                        // Place on nose/mouth area
                         centerX = noseX;
                         centerY = noseY + (eyeDist * 0.15);
                         currentScale = (eyeDist / 42) * propScale;
                     } else {
-                        // Default glasses/eyewear: place exactly centered on the eyes
                         centerX = (lex + rex) / 2;
                         centerY = (ley + rey) / 2;
                         currentScale = (eyeDist / 38) * propScale;
@@ -751,18 +803,64 @@ function startCanvasDrawLoop() {
                 }
             }
             
-            // Render the prop emoji with rotation and scaling applied
-            ctx.save();
-            // Apply manual arrows fine-tuning offset on top of tracking!
-            ctx.translate(centerX + propXOffset, centerY + propYOffset);
-            ctx.rotate(currentAngle);
-            
-            ctx.font = `${75 * currentScale}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            
-            ctx.fillText(selectedARPropEmoji, 0, 0);
-            ctx.restore();
+            // Draw premium PNG filter images if set
+            if (selectedARPropImg !== '') {
+                if (selectedARPropImg === 'fire_eyes') {
+                    // Draw fire eyes over left and right eye coordinates
+                    const w = 90 * (eyeDist / 38) * propScale;
+                    const h = 90 * (eyeDist / 38) * propScale;
+                    
+                    // Left eye fire
+                    ctx.save();
+                    ctx.translate(lex + propXOffset, ley + propYOffset);
+                    ctx.rotate(currentAngle);
+                    ctx.drawImage(preloadedFilterImages['left_eye'], -w/2, -h/2, w, h);
+                    ctx.restore();
+                    
+                    // Right eye fire
+                    ctx.save();
+                    ctx.translate(rex + propXOffset, rey + propYOffset);
+                    ctx.rotate(currentAngle);
+                    ctx.drawImage(preloadedFilterImages['right_eye'], -w/2, -h/2, w, h);
+                    ctx.restore();
+                } else {
+                    let w = 120 * currentScale;
+                    let h = 120 * currentScale;
+                    
+                    if (selectedARPropImg === 'dog_face') {
+                        w = 180 * currentScale;
+                        h = 180 * currentScale;
+                    } else if (selectedARPropImg === 'cowboy_hat') {
+                        w = 240 * currentScale;
+                        h = 180 * currentScale;
+                    } else if (selectedARPropImg.startsWith('glasses')) {
+                        w = 135 * currentScale;
+                        h = 60 * currentScale;
+                    } else if (selectedARPropImg.startsWith('moustache') || selectedARPropImg === 'mustache1') {
+                        w = 110 * currentScale;
+                        h = 40 * currentScale;
+                    }
+                    
+                    ctx.save();
+                    ctx.translate(centerX + propXOffset, centerY + propYOffset);
+                    ctx.rotate(currentAngle);
+                    ctx.drawImage(preloadedFilterImages[selectedARPropImg], -w/2, -h/2, w, h);
+                    ctx.restore();
+                }
+            } else {
+                // Render the prop emoji with rotation and scaling applied
+                ctx.save();
+                // Apply manual arrows fine-tuning offset on top of tracking!
+                ctx.translate(centerX + propXOffset, centerY + propYOffset);
+                ctx.rotate(currentAngle);
+                
+                ctx.font = `${75 * currentScale}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                
+                ctx.fillText(selectedARPropEmoji, 0, 0);
+                ctx.restore();
+            }
         }
         
         canvasAnimationId = requestAnimationFrame(drawFrame);
@@ -776,6 +874,7 @@ function selectARProp(propId) {
     selectedARProp = propId;
     const propObj = AR_PROPS.find(p => p.id === propId);
     selectedARPropEmoji = propObj ? propObj.emoji : '';
+    selectedARPropImg = propObj ? propObj.img : '';
     
     // Update active class in props carousel
     const items = document.querySelectorAll('.snap-prop-item');
@@ -823,6 +922,7 @@ function openSnapchatCamera() {
         return;
     }
     
+    preloadFilterImages();
     generateLenses();
     
     const modal = document.getElementById('snapchat-camera-modal');
@@ -865,7 +965,16 @@ function openSnapchatCamera() {
         AR_PROPS.forEach((prop, index) => {
             const item = document.createElement('div');
             item.className = `snap-prop-item ${prop.id === 'none' ? 'active' : ''}`;
-            item.innerHTML = `<span style="font-size:16px; margin-bottom: 2px;">${prop.emoji || '❌'}</span><span style="font-size:7px; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%;">${prop.name}</span>`;
+            
+            let displayIcon = prop.emoji;
+            if (prop.img) {
+                if (prop.id === 'dog_face') displayIcon = '🐶';
+                else if (prop.id === 'cowboy_hat') displayIcon = '🤠';
+                else if (prop.id.startsWith('glasses') || prop.id.startsWith('moustache') || prop.id.startsWith('mustache')) displayIcon = '🕶️';
+                else if (prop.id === 'fire_eyes') displayIcon = '🔥';
+            }
+            
+            item.innerHTML = `<span style="font-size:16px; margin-bottom: 2px;">${displayIcon || '❌'}</span><span style="font-size:7px; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%;">${prop.name}</span>`;
             item.onclick = (e) => {
                 e.stopPropagation();
                 selectARProp(prop.id);
