@@ -42,6 +42,15 @@ def serve_media_custom(request, path):
     if os.path.exists(local_file_path):
         return serve(request, normalized_path, document_root=local_dir)
         
+    # Fallback placeholder to prevent broken layout for missing assets
+    try:
+        default_name = 'avatars/default.png'
+        blob = BlobFile.objects.get(name=default_name)
+        content_bytes = base64.b64decode(blob.content.encode('utf-8'))
+        return HttpResponse(content_bytes, content_type='image/png')
+    except BlobFile.DoesNotExist:
+        pass
+        
     raise Http404("Media file not found")
 
 urlpatterns = [
