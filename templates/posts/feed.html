@@ -12,9 +12,10 @@
         <!-- Stories Tray -->
         <div class="stories-tray">
             <!-- Upload story button -->
-            <div class="story-item" onclick="triggerStoryUpload()">
-                <div class="story-avatar-ring" style="background:var(--border-color)">
-                    <img src="{{ request.user.profile.avatar.url }}" alt="Your avatar">
+            <div class="story-item" id="my-story-item" style="position: relative;">
+                <div class="story-avatar-ring" style="background:var(--border-color); position: relative;">
+                    <img src="{{ request.user.profile.avatar.url }}" alt="Your avatar" id="my-story-avatar" onclick="handleMyStoryClick(event)">
+                    <div class="story-plus-badge" onclick="triggerStoryUpload(event)">+</div>
                 </div>
                 <span class="story-username">Add Story</span>
                 <input type="file" id="story-upload-input" accept="image/*,video/*" style="display:none;" onchange="uploadStoryFile()">
@@ -135,7 +136,18 @@
     });
     {% endfor %}
 
-    function triggerStoryUpload() {
+    function handleMyStoryClick(e) {
+        if (e) e.stopPropagation();
+        const myStoriesNode = document.getElementById('stories-data-{{ request.user.id }}');
+        if (myStoriesNode) {
+            openStoriesModal(encodeURIComponent(myStoriesNode.textContent));
+        } else {
+            triggerStoryUpload(e);
+        }
+    }
+
+    function triggerStoryUpload(e) {
+        if (e) e.stopPropagation();
         document.getElementById('story-upload-input').click();
     }
 
@@ -165,8 +177,55 @@
         })
         .catch(err => console.error('Story upload error:', err));
     }
+
+    // Set Your Story state dynamically on load
+    document.addEventListener('DOMContentLoaded', () => {
+        const myStoriesNode = document.getElementById('stories-data-{{ request.user.id }}');
+        const myStoryItem = document.getElementById('my-story-item');
+        if (myStoriesNode && myStoryItem) {
+            const label = myStoryItem.querySelector('.story-username');
+            if (label) label.textContent = 'Your Story';
+            
+            const ring = myStoryItem.querySelector('.story-avatar-ring');
+            if (ring) {
+                // Check if viewed already
+                // Since user_stories has request.user, we can check if it has viewed
+                const stories = JSON.parse(myStoriesNode.textContent);
+                const hasUnread = stories.some(s => !s.has_viewed); // wait, has_viewed is standard
+                
+                ring.style.background = 'var(--accent-gradient)';
+                ring.style.padding = '2.5px';
+            }
+        }
+    });
 </script>
 <style>
+    .story-plus-badge {
+        position: absolute;
+        bottom: -2px;
+        right: -2px;
+        background-color: var(--accent-color);
+        color: white;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 14px;
+        font-weight: 700;
+        border: 2px solid var(--bg-primary);
+        cursor: pointer;
+        box-shadow: var(--shadow);
+        z-index: 5;
+        transition: transform 0.1s ease;
+    }
+    .story-plus-badge:hover {
+        transform: scale(1.1);
+    }
+    .story-avatar-ring img {
+        cursor: pointer;
+    }
     @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }

@@ -29,6 +29,10 @@ def feed_view(request):
     # Filter active stories (within 24 hours) grouped by author
     active_stories = Story.active_objects.filter(author_id__in=story_users_ids).select_related('author', 'author__profile')
     
+    # Annotate if viewed by current user
+    for story in active_stories:
+        story.has_viewed = story.views.filter(viewer=request.user).exists()
+        
     # Group stories by user for tray
     user_stories_map = {}
     for story in active_stories:
