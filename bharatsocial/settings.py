@@ -162,6 +162,16 @@ if os.environ.get('VERCEL') == '1':
 else:
     MEDIA_ROOT = BASE_DIR / 'media'
 
+DEFAULT_FILE_STORAGE = 'posts.storage.DatabaseStorage'
+STORAGES = {
+    "default": {
+        "BACKEND": "posts.storage.DatabaseStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # Groq API Configuration

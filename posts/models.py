@@ -98,3 +98,11 @@ class AICaptionFeedback(models.Model):
 
     def __str__(self):
         return f"Feedback ({self.rating}) on {self.category} caption"
+
+class BlobFile(models.Model):
+    name = models.CharField(max_length=500, unique=True)
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name

@@ -17,22 +17,30 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
+from django.http import HttpResponse, Http404
 from django.views.static import serve
-from django.http import Http404
+import base64
+import mimetypes
 import os
 
 def serve_media_custom(request, path):
-    # Try /tmp/media first
-    tmp_dir = '/tmp/media'
-    tmp_file_path = os.path.join(tmp_dir, path)
-    if os.path.exists(tmp_file_path):
-        return serve(request, path, document_root=tmp_dir)
+    normalized_path = path.replace('\\', '/')
+    
+    # Try database storage first
+    from posts.models import BlobFile
+    try:
+        blob = BlobFile.objects.get(name=normalized_path)
+        content_bytes = base64.b64decode(blob.content.encode('utf-8'))
+        content_type, _ = mimetypes.guess_type(normalized_path)
+        return HttpResponse(content_bytes, content_type=content_type or 'application/octet-stream')
+    except BlobFile.DoesNotExist:
+        pass
         
     # Try local project media next
     local_dir = os.path.join(settings.BASE_DIR, 'media')
-    local_file_path = os.path.join(local_dir, path)
+    local_file_path = os.path.join(local_dir, normalized_path)
     if os.path.exists(local_file_path):
-        return serve(request, path, document_root=local_dir)
+        return serve(request, normalized_path, document_root=local_dir)
         
     raise Http404("Media file not found")
 
