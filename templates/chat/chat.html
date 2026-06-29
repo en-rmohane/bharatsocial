@@ -162,7 +162,9 @@
 <script>
     const currentLoggedInUsername = "{{ request.user.username }}";
 </script>
-<script src="{% static 'js/chat.js' %}?v=103"></script>
+<!-- Real-time Face Tracking Library -->
+<script src="https://cdn.jsdelivr.net/npm/clmtrackr@1.1.2/build/clmtrackr.min.js"></script>
+<script src="{% static 'js/chat.js' %}?v=104"></script>
 <script>
     function preActivateThread() {
         {% if request.resolver_match.url_name == 'chat_inbox_user' %}

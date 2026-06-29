@@ -566,6 +566,8 @@ let propXOffset = 0;
 let propYOffset = -40; // centered slightly up (for glasses/nose/crown relative to center)
 let propScale = 1.0;
 let canvasAnimationId = null;
+let clmTrackerInstance = null;
+let trackerActive = false;
 
 const AR_PROPS = [
     { id: 'none', name: '❌ Clear Mask', emoji: '' },
@@ -701,13 +703,65 @@ function startCanvasDrawLoop() {
         // 2. Draw AR Mask Emoji overlay (Reset filter first so colors match!)
         ctx.filter = 'none';
         if (selectedARProp !== 'none' && selectedARPropEmoji !== '') {
+            let centerX = canvas.width / 2;
+            let centerY = canvas.height / 2 - 40;
+            let currentScale = propScale;
+            let currentAngle = 0;
+            
+            // Check if clmtrackr has found the face coordinates
+            let faceTracked = false;
+            if (trackerActive && clmTrackerInstance) {
+                const positions = clmTrackerInstance.getCurrentPosition();
+                if (positions && positions.length > 62) {
+                    faceTracked = true;
+                    const lex = positions[27][0];
+                    const ley = positions[27][1];
+                    const rex = positions[32][0];
+                    const rey = positions[32][1];
+                    const noseX = positions[62][0];
+                    const noseY = positions[62][1];
+                    const foreheadX = positions[33][0];
+                    const foreheadY = positions[33][1];
+                    
+                    const dx = rex - lex;
+                    const dy = rey - ley;
+                    const eyeDist = Math.sqrt(dx*dx + dy*dy);
+                    currentAngle = Math.atan2(dy, dx);
+                    
+                    // Categorize props positioning dynamically based on type
+                    const isHeadwear = ['crown', 'hat', 'tiara', 'heart-crown', 'flower-crown', 'chef-hat', 'cowboy-hat', 'santa-hat', 'graduation-cap', 'witch-hat', 'military-helmet', 'police-cap', 'birthday-cap', 'halo', 'turband', 'catears', 'dogears', 'bunny-ears', 'horns', 'fox-ears', 'star-crown', 'butterfly-crown', 'heart-aura'].includes(selectedARProp);
+                    const isMouthnose = ['mustache', 'clown-nose', 'monkey-face', 'panda-face', 'lion-mane', 'gas-mask', 'skull-mask', 'robot-face', 'pumpkin-head', 'ghost-mask'].includes(selectedARProp);
+                    
+                    if (isHeadwear) {
+                        // Place on top of forehead, scaled proportional to eye distance
+                        centerX = foreheadX;
+                        centerY = foreheadY - (eyeDist * 0.95);
+                        currentScale = (eyeDist / 38) * propScale;
+                    } else if (isMouthnose) {
+                        // Place on nose/mouth area
+                        centerX = noseX;
+                        centerY = noseY + (eyeDist * 0.15);
+                        currentScale = (eyeDist / 42) * propScale;
+                    } else {
+                        // Default glasses/eyewear: place exactly centered on the eyes
+                        centerX = (lex + rex) / 2;
+                        centerY = (ley + rey) / 2;
+                        currentScale = (eyeDist / 38) * propScale;
+                    }
+                }
+            }
+            
+            // Render the prop emoji with rotation and scaling applied
             ctx.save();
-            ctx.font = `${80 * propScale}px Arial`;
+            // Apply manual arrows fine-tuning offset on top of tracking!
+            ctx.translate(centerX + propXOffset, centerY + propYOffset);
+            ctx.rotate(currentAngle);
+            
+            ctx.font = `${75 * currentScale}px Arial`;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             
-            // Draw vector emoji onto canvas center adjusted with custom offsets
-            ctx.fillText(selectedARPropEmoji, (canvas.width / 2) + propXOffset, (canvas.height / 2) + propYOffset);
+            ctx.fillText(selectedARPropEmoji, 0, 0);
             ctx.restore();
         }
         
@@ -847,6 +901,24 @@ function openSnapchatCamera() {
     });
 }
 
+function initFaceTracker(videoElement) {
+    if (typeof clm === 'undefined') {
+        console.warn("clmtrackr library not loaded on page.");
+        return;
+    }
+    try {
+        if (!clmTrackerInstance) {
+            clmTrackerInstance = new clm.tracker();
+            clmTrackerInstance.init();
+        }
+        clmTrackerInstance.start(videoElement);
+        trackerActive = true;
+        console.log("clmtrackr face tracking successfully started!");
+    } catch (e) {
+        console.error("Face tracker init failed:", e);
+    }
+}
+
 function setupWebcamStream(stream) {
     localCameraStream = stream;
     const previewEl = document.getElementById('snap-webcam-preview');
@@ -858,10 +930,12 @@ function setupWebcamStream(stream) {
     previewEl.onloadedmetadata = () => {
         previewEl.play()
         .then(() => {
+            initFaceTracker(previewEl);
             startCanvasDrawLoop();
         })
         .catch(e => {
             console.warn("Forcing draw loop due to autoplay play() rejection:", e);
+            initFaceTracker(previewEl);
             startCanvasDrawLoop();
         });
     };
@@ -869,7 +943,13 @@ function setupWebcamStream(stream) {
     // Fallback if metadata event is delayed
     setTimeout(() => {
         if (previewEl.paused) {
-            previewEl.play().then(() => startCanvasDrawLoop()).catch(() => startCanvasDrawLoop());
+            previewEl.play().then(() => {
+                initFaceTracker(previewEl);
+                startCanvasDrawLoop();
+            }).catch(() => {
+                initFaceTracker(previewEl);
+                startCanvasDrawLoop();
+            });
         }
     }, 500);
 }
@@ -881,6 +961,14 @@ function closeSnapchatCamera() {
     if (canvasAnimationId) {
         cancelAnimationFrame(canvasAnimationId);
         canvasAnimationId = null;
+    }
+    
+    // Stop face tracker
+    if (clmTrackerInstance) {
+        try {
+            clmTrackerInstance.stop();
+        } catch(e) {}
+        trackerActive = false;
     }
     
     // Stop recording timer
@@ -903,7 +991,9 @@ function closeSnapchatCamera() {
     }
     
     // Hide controls & reset prop selections
-    document.getElementById('snap-adjust-controls').style.display = 'none';
+    const adjCtrl = document.getElementById('snap-adjust-controls');
+    if (adjCtrl) adjCtrl.style.display = 'none';
+    
     selectedARProp = 'none';
     selectedARPropEmoji = '';
     propXOffset = 0;
@@ -1048,6 +1138,8 @@ function retakeSnap() {
     recordedSnapBlob = null;
     
     if (localCameraStream && !canvasAnimationId) {
+        const webcam = document.getElementById('snap-webcam-preview');
+        if (webcam) initFaceTracker(webcam);
         startCanvasDrawLoop();
     }
 }
