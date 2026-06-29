@@ -145,14 +145,83 @@ def message_list_create_api(request, username):
         if is_snap:
             expires_at = timezone.now() + timezone.timedelta(hours=1)
 
-        message = Message.objects.create(
-            sender=request.user,
-            receiver=other_user,
-            content=content,
-            image=image,
-            is_snap=is_snap,
-            expires_at=expires_at
-        )
+        # Apply Python face tracking filter overlay using OpenCV and MediaPipe if available
+        if is_snap and image:
+            import json
+            import tempfile
+            from django.core.files import File
+            from chat.filters_processor import process_video_filters
+            
+            filter_id = None
+            try:
+                config = json.loads(content)
+                filter_id = config.get('propId') or config.get('filterId')
+            except Exception:
+                pass
+                
+            if filter_id and filter_id != 'none':
+                # Create input temp file
+                with tempfile.NamedTemporaryFile(suffix='.webm', delete=False) as temp_in:
+                    for chunk in image.chunks():
+                        temp_in.write(chunk)
+                    temp_in_path = temp_in.name
+                
+                # Create output temp file
+                with tempfile.NamedTemporaryFile(suffix='.webm', delete=False) as temp_out:
+                    temp_out_path = temp_out.name
+                
+                # Process the filter on python backend
+                processed = process_video_filters(temp_in_path, temp_out_path, filter_id)
+                
+                if processed and os.path.exists(temp_out_path) and os.path.getsize(temp_out_path) > 0:
+                    with open(temp_out_path, 'rb') as f:
+                        django_file = File(f, name=image.name)
+                        message = Message.objects.create(
+                            sender=request.user,
+                            receiver=other_user,
+                            content=content,
+                            image=django_file,
+                            is_snap=is_snap,
+                            expires_at=expires_at
+                        )
+                    try:
+                        os.unlink(temp_out_path)
+                    except Exception:
+                        pass
+                else:
+                    # Fallback to original
+                    message = Message.objects.create(
+                        sender=request.user,
+                        receiver=other_user,
+                        content=content,
+                        image=image,
+                        is_snap=is_snap,
+                        expires_at=expires_at
+                    )
+                try:
+                    os.unlink(temp_in_path)
+                except Exception:
+                    pass
+            else:
+                # No filter chosen
+                message = Message.objects.create(
+                    sender=request.user,
+                    receiver=other_user,
+                    content=content,
+                    image=image,
+                    is_snap=is_snap,
+                    expires_at=expires_at
+                )
+        else:
+            # Normal text/image message
+            message = Message.objects.create(
+                sender=request.user,
+                receiver=other_user,
+                content=content,
+                image=image,
+                is_snap=is_snap,
+                expires_at=expires_at
+            )
         
         # Trigger Message Notification
         from notifications.models import Notification
