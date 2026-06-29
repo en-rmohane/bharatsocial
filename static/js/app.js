@@ -147,19 +147,25 @@ function applyTranslations(lang) {
 function initNotificationBadging() {
     const notificationBadge = document.getElementById('notification-unread-count');
     const messageBadge = document.getElementById('message-unread-count');
-    if (!notificationBadge && !messageBadge) return;
+    const mobileBadge = document.getElementById('mobile-notification-badge');
+    if (!notificationBadge && !messageBadge && !mobileBadge) return;
 
     const checkCounts = () => {
         fetch('/api/notifications/unread-count/')
             .then(res => res.json())
             .then(data => {
-                if (notificationBadge) {
-                    if (data.unread_count > 0) {
+                if (data.unread_count > 0) {
+                    if (notificationBadge) {
                         notificationBadge.textContent = data.unread_count;
                         notificationBadge.style.display = 'flex';
-                    } else {
-                        notificationBadge.style.display = 'none';
                     }
+                    if (mobileBadge) {
+                        mobileBadge.textContent = data.unread_count;
+                        mobileBadge.style.display = 'flex';
+                    }
+                } else {
+                    if (notificationBadge) notificationBadge.style.display = 'none';
+                    if (mobileBadge) mobileBadge.style.display = 'none';
                 }
             })
             .catch(err => console.error('Error fetching unread counts:', err));

@@ -143,3 +143,21 @@
     background-color: var(--bg-secondary);
     border-color: var(--border-hover);
 }
+
+@media (max-width: 480px) {
+    .auth-container {
+        background-color: var(--bg-primary);
+        padding: 16px;
+    }
+    .auth-card {
+        border: none;
+        box-shadow: none;
+        padding: 20px 10px;
+    }
+    .auth-switch {
+        border: none;
+        box-shadow: none;
+        margin-top: 10px;
+        background-color: transparent;
+    }
+}

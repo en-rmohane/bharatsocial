@@ -355,7 +355,12 @@
 @media (max-width: 768px) {
     .chat-page-container {
         grid-template-columns: 1fr !important;
-        height: calc(100vh - 110px);
+        height: calc(100vh - 106px);
+        margin: 0;
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        max-width: 100%;
     }
     .chat-left-pane {
         width: 100%;
