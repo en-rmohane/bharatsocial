@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Verification Failed • BharatSocial{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card" style="text-align: center; padding: 40px 24px;">
+        <h1 class="auth-logo">BharatSocial</h1>
+        
+        <div style="margin: 24px 0;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#d32f2f" stroke-width="2" style="width: 64px; height: 64px; margin: 0 auto;">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="15" y1="9" x2="9" y2="15"/>
+                <line x1="9" y1="9" x2="15" y2="15"/>
+            </svg>
+        </div>
+
+        <h2 style="font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">Verification Failed</h2>
+        
+        <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
+            The email verification link is invalid, has expired, or has already been used.<br>
+            Please check your inbox or request a new verification link.
+            <br><br>
+            (सत्यापन लिंक अमान्य या समाप्त हो गया है। कृपया नया सत्यापन लिंक भेजने का अनुरोध करें।)
+        </p>
+
+        <a href="{% url 'login' %}" class="auth-btn" style="display: block; width: 100%; text-decoration: none; text-align: center; font-weight: 700; padding: 12px 0;">
+            Go to Log In (लॉग इन पर जाएँ)
+        </a>
+    </div>
+</div>
+{% endblock %}

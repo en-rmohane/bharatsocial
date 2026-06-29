@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Notifications • BharatSocial{% endblock %}
+
+{% block extra_css %}
+<style>
+    .notifications-card {
+        background-color: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 30px;
+        width: 100%;
+        max-width: 600px;
+        margin: 40px auto;
+        box-shadow: var(--shadow);
+    }
+    .notif-header-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 16px;
+    }
+    .notif-list {
+        display: flex;
+        flex-direction: column;
+    }
+    .notif-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 0;
+        border-bottom: 1px solid var(--bg-tertiary);
+        gap: 16px;
+        transition: var(--transition);
+    }
+    .notif-item.unread {
+        background-color: rgba(255, 48, 79, 0.03);
+        padding-left: 10px;
+        padding-right: 10px;
+        border-radius: var(--radius-sm);
+    }
+    .notif-content-side {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-grow: 1;
+    }
+    .notif-text {
+        font-size: 13.5px;
+    }
+    .notif-text span.username {
+        font-weight: 600;
+    }
+    .notif-text span.action-text {
+        color: var(--text-secondary);
+        margin: 0 4px;
+    }
+    .notif-time {
+        font-size: 11px;
+        color: var(--text-muted);
+        display: block;
+        margin-top: 2px;
+    }
+    .notif-media-preview {
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius-sm);
+        object-fit: cover;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="notifications-card">
+    <div class="notif-header-row">
+        <h2 style="font-size:24px; font-weight:300;">Notifications</h2>
+        <button onclick="readAllNotifications()" style="color:var(--accent-color); font-weight:600; font-size:13px;">Mark all as read</button>
+    </div>
+    
+    <div class="notif-list" id="notifications-panel-list">
+        <!-- Injected dynamically by notifications.js/HTML callbacks -->
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', loadNotificationsList);
+    } else {
+        loadNotificationsList();
+    }
+
+    function loadNotificationsList() {
+        const panel = document.getElementById('notifications-panel-list');
+        panel.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-secondary);">Loading...</div>';
+
+        fetch('/api/notifications/')
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error(`Server returned status ${res.status}`);
+                }
+                return res.json();
+            })
+            .then(notifs => {
+                try {
+                    panel.innerHTML = '';
+                    if (notifs.length === 0) {
+                        panel.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-secondary);font-size:14px;">No notifications yet</div>';
+                        return;
+                    }
+
+                    notifs.forEach(n => {
+                        const el = document.createElement('div');
+                        el.className = `notif-item ${!n.is_read ? 'unread' : ''}`;
+                        el.id = `notif-item-${n.id}`;
+
+                        // Left user redirect
+                        let itemText = `<span class="username" onclick="window.location.href='/profile/${n.sender_username}/'">${n.sender_username}</span>`;
+                        
+                        // Action matching
+                        let targetUrl = `/profile/${n.sender_username}/`;
+                        if (n.post) {
+                            targetUrl = `/post/${n.post}/`;
+                        } else if (n.reel) {
+                            targetUrl = '/reels/';
+                        }
+
+                        itemText += `<span class="action-text">${n.notification_text}</span>`;
+                        
+                        if (n.comment_content) {
+                            itemText += `<span style="font-style:italic;color:var(--text-secondary);">"${n.comment_content.substring(0,25)}..."</span>`;
+                        }
+
+                        // Media previews
+                        let mediaHtml = '';
+                        if (n.post_image) {
+                            mediaHtml = `<img src="${n.post_image}" class="notif-media-preview" onclick="window.location.href='${targetUrl}'">`;
+                        } else if (n.reel_video) {
+                            mediaHtml = `<video src="${n.reel_video}" class="notif-media-preview" onclick="window.location.href='${targetUrl}'" muted></video>`;
+                        } else if (n.notification_type === 'follow') {
+                            // Display clean Follow button indicator
+                            mediaHtml = `<button class="profile-btn profile-btn-primary" style="padding:4px 8px;font-size:11px;" onclick="window.location.href='${targetUrl}'">Profile</button>`;
+                        }
+
+                        el.onclick = () => {
+                            if (!n.is_read) {
+                                markSingleRead(n.id);
+                            }
+                        };
+
+                        el.innerHTML = `
+                            <div class="notif-content-side">
+                                <img src="${n.sender_avatar || '/media/avatars/default.png'}" class="post-avatar" style="width:38px;height:38px;cursor:pointer;" onclick="window.location.href='/profile/${n.sender_username}/'">
+                                <div class="notif-text">
+                                    ${itemText}
+                                    <span class="notif-time">${formatDate(n.created_at)}</span>
+                                </div>
+                            </div>
+                            <div style="flex-shrink:0;">
+                                ${mediaHtml}
+                            </div>
+                        `;
+                        panel.appendChild(el);
+                    });
+                } catch (err) {
+                    panel.innerHTML = `<div style="text-align:center;padding:20px;color:red;font-size:13px;">Rendering Error: ${err.message}</div>`;
+                    console.error("Rendering Error:", err);
+                }
+            })
+            .catch(err => {
+                panel.innerHTML = `<div style="text-align:center;padding:20px;color:red;font-size:13px;">Fetch Error: ${err.message}</div>`;
+                console.error("Fetch Error:", err);
+            });
+    }
+
+    function markSingleRead(id) {
+        const csrfToken = getCookie('csrftoken');
+        fetch(`/api/notifications/${id}/read/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(res => {
+            if (res.ok) {
+                const item = document.getElementById(`notif-item-${id}`);
+                if (item) item.classList.remove('unread');
+            }
+        });
+    }
+
+    function readAllNotifications() {
+        const csrfToken = getCookie('csrftoken');
+        fetch('/api/notifications/read-all/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(res => {
+            if (res.ok) loadNotificationsList();
+        });
+    }
+
+    function formatDate(isoString) {
+        if (!isoString) return '';
+        const date = new Date(isoString);
+        return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    }
+</script>
+{% endblock %}

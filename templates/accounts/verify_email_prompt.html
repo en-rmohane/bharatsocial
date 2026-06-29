@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Verify Your Email • BharatSocial{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/auth.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card" style="text-align: center; padding: 40px 24px;">
+        <h1 class="auth-logo">BharatSocial</h1>
+        
+        <div style="margin: 24px 0;">
+            <svg viewBox="0 0 24 24" fill="none" stroke="var(--color-saffron)" stroke-width="2" style="width: 64px; height: 64px; margin: 0 auto;">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                <polyline points="22,6 12,13 2,6"/>
+            </svg>
+        </div>
+
+        <h2 style="font-size: 20px; font-weight: 700; color: var(--text-primary); margin-bottom: 12px;">Verify Your Email (ईमेल सत्यापित करें)</h2>
+        
+        <p style="color: var(--text-secondary); font-size: 14px; line-height: 1.6; margin-bottom: 24px;">
+            We have sent a verification link to your email address: <strong style="color: var(--text-primary);">{{ request.user.email }}</strong>.<br>
+            Please click on that link to verify your account and access all features.
+            <br><br>
+            (हमने आपके ईमेल पते पर एक सत्यापन लिंक भेजा है। कृपया अपने खाते को सत्यापित करने के लिए उस लिंक पर क्लिक करें।)
+        </p>
+
+        <div id="resend-message" style="margin: 12px 0; font-size: 13px; font-weight: 600; min-height: 20px;"></div>
+
+        <button type="button" class="auth-btn" id="resend-btn" onclick="resendVerificationEmail()" style="width: 100%; font-weight: 700;">
+            Resend Verification Link (लिंक पुनः भेजें)
+        </button>
+        
+        <div style="margin-top: 16px;">
+            <a href="{% url 'logout' %}" style="font-size: 13px; font-weight: 600; color: var(--text-secondary); text-decoration: none;">
+                Log Out (लॉग आउट करें)
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+function resendVerificationEmail() {
+    const btn = document.getElementById('resend-btn');
+    const msg = document.getElementById('resend-message');
+    const csrfToken = '{{ csrf_token }}';
+
+    btn.disabled = true;
+    btn.innerText = 'Sending...';
+    msg.innerText = '';
+
+    fetch("{% url 'api_resend_verification_email' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
+            msg.style.color = '#128807';
+            msg.innerText = 'Verification link has been sent! Check your terminal console or email. (लिंक भेज दिया गया है!)';
+        } else {
+            msg.style.color = '#d32f2f';
+            msg.innerText = data.error || 'Failed to send verification link.';
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        msg.style.color = '#d32f2f';
+        msg.innerText = 'An error occurred. Please try again.';
+    })
+    .finally(() => {
+        btn.disabled = false;
+        btn.innerText = 'Resend Verification Link (लिंक पुनः भेजें)';
+    });
+}
+</script>
+{% endblock %}

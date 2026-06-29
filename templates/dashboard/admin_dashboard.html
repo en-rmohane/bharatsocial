@@ -1,0 +1,211 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Moderator Dashboard • BharatSocial{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/admin.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="admin-layout">
+    
+    <div class="admin-header">
+        <h1 class="admin-title">BharatSocial Moderator Panel</h1>
+        <p style="color:var(--text-secondary); margin-top:4px;">Content Moderation, User Management & System Analytics</p>
+    </div>
+    
+    <!-- Metrics counter grid -->
+    <div class="metrics-grid">
+        <div class="metric-card">
+            <span class="metric-value">{{ total_users }}</span>
+            <span class="metric-label">Total Users</span>
+        </div>
+        <div class="metric-card">
+            <span class="metric-value">{{ total_posts }}</span>
+            <span class="metric-label">Total Posts</span>
+        </div>
+        <div class="metric-card">
+            <span class="metric-value">{{ total_reels }}</span>
+            <span class="metric-label">Total Reels</span>
+        </div>
+        <div class="metric-card">
+            <span class="metric-value" style="color:var(--accent-color);">{{ total_reports }}</span>
+            <span class="metric-label">Active Reports</span>
+        </div>
+    </div>
+    
+    <div class="dashboard-grid">
+        
+        <!-- 1. Reports Management -->
+        <div class="panel-card">
+            <div class="panel-header">Pending Content Reports</div>
+            <div class="panel-body">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Reporter</th>
+                            <th>Reported Type</th>
+                            <th>Reported Detail</th>
+                            <th>Reason</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for report in reports %}
+                        <tr id="report-row-{{ report.id }}">
+                            <td><strong>{{ report.reporter.username }}</strong></td>
+                            <td>
+                                {% if report.reported_user %}User
+                                {% elif report.reported_post %}Post
+                                {% elif report.reported_reel %}Reel
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if report.reported_user %}
+                                    <a href="{% url 'profile' username=report.reported_user.username %}" target="_blank">@{{ report.reported_user.username }}</a>
+                                {% elif report.reported_post %}
+                                    <a href="{% url 'post_detail' post_id=report.reported_post.id %}" target="_blank">Post #{{ report.reported_post.id }}</a>
+                                {% elif report.reported_reel %}
+                                    <a href="{% url 'reels_feed' %}" target="_blank">Reel #{{ report.reported_reel.id }}</a>
+                                {% endif %}
+                            </td>
+                            <td>{{ report.reason }}</td>
+                            <td><span class="badge badge-pending">{{ report.status }}</span></td>
+                            <td>
+                                <div class="btn-group">
+                                    <button class="action-button btn-resolve" onclick="resolveReport({{ report.id }}, 'resolve')">Resolve</button>
+                                    <button class="action-button" onclick="resolveReport({{ report.id }}, 'ignore')">Ignore</button>
+                                    {% if report.reported_post or report.reported_reel %}
+                                    <button class="action-button btn-danger" onclick="resolveReport({{ report.id }}, 'delete_content')">Delete Content</button>
+                                    {% endif %}
+                                    {% if report.reported_user %}
+                                    <button class="action-button btn-danger" onclick="resolveReport({{ report.id }}, 'suspend_user')">Suspend User</button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" style="text-align:center; color:var(--text-secondary); padding:30px;">No pending reports</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- 2. User Management -->
+        <div class="panel-card">
+            <div class="panel-header">User Accounts Directory</div>
+            <div class="panel-body">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Status</th>
+                            <th>Joined Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr>
+                            <td>
+                                <div style="display:flex; align-items:center; gap:10px;">
+                                    <img src="{{ u.profile.avatar.url }}" class="post-avatar" style="width:30px; height:30px;">
+                                    <strong>{{ u.username }}</strong>
+                                </div>
+                            </td>
+                            <td>{{ u.email }}</td>
+                            <td>{% if u.is_staff %}<span style="color:var(--accent-color); font-weight:600;">Staff</span>{% else %}User{% endif %}</td>
+                            <td>
+                                <span class="badge {% if u.is_active %}badge-active{% else %}badge-suspended{% endif %}" id="user-badge-{{ u.id }}">
+                                    {% if u.is_active %}Active{% else %}Suspended{% endif %}
+                                </span>
+                            </td>
+                            <td>{{ u.date_joined|date:"d M Y" }}</td>
+                            <td>
+                                {% if not u.is_staff %}
+                                <button class="action-button {% if u.is_active %}btn-danger{% else %}btn-resolve{% endif %}" id="user-toggle-btn-{{ u.id }}" onclick="toggleUserStatus({{ u.id }})">
+                                    {% if u.is_active %}Suspend{% else %}Activate{% endif %}
+                                </button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    function resolveReport(reportId, actionType) {
+        if (actionType === 'delete_content' && !confirm('Are you sure you want to delete this content?')) return;
+        if (actionType === 'suspend_user' && !confirm('Are you sure you want to suspend this user?')) return;
+        
+        const csrfToken = getCookie('csrftoken');
+        
+        // Map UI actions to backend action codes
+        let backendAction = actionType;
+        if (actionType === 'delete_content') backendAction = 'delete_post';
+        
+        fetch(`/api/moderator/reports/${reportId}/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ action: backendAction })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const row = document.getElementById(`report-row-${reportId}`);
+                if (row) {
+                    row.style.opacity = '0.4';
+                    row.querySelector('.btn-group').innerHTML = '<span style="color:#00ea64; font-weight:600;">RESOLVED</span>';
+                }
+            }
+        });
+    }
+
+    function toggleUserStatus(userId) {
+        const csrfToken = getCookie('csrftoken');
+        fetch(`/api/moderator/users/${userId}/toggle/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const badge = document.getElementById(`user-badge-${userId}`);
+                const btn = document.getElementById(`user-toggle-btn-${userId}`);
+                if (data.is_active) {
+                    badge.className = 'badge badge-active';
+                    badge.textContent = 'Active';
+                    btn.className = 'action-button btn-danger';
+                    btn.textContent = 'Suspend';
+                } else {
+                    badge.className = 'badge badge-suspended';
+                    badge.textContent = 'Suspended';
+                    btn.className = 'action-button btn-resolve';
+                    btn.textContent = 'Activate';
+                }
+            }
+        });
+    }
+</script>
+{% endblock %}

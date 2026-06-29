@@ -1,0 +1,397 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Post by {{ post.author.username }} • BharatSocial{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/profile.css' %}">
+<style>
+    .post-detail-layout {
+        width: 100%;
+        max-width: 935px;
+        margin: 20px auto;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        background-color: var(--bg-primary);
+        overflow: hidden;
+        box-shadow: var(--shadow-large);
+        height: calc(100vh - 40px);
+    }
+    .detail-left {
+        background-color: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
+    }
+    .detail-right {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        border-left: 1px solid var(--border-color);
+    }
+    .detail-header {
+        padding: 16px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .comments-scroll-area {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 20px 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        background-color: var(--bg-secondary);
+    }
+    .comment-item {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        font-size: 13.5px;
+    }
+    .comment-main-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+    }
+    .comment-text-wrapper {
+        flex-grow: 1;
+    }
+    .comment-user {
+        font-weight: 600;
+        margin-right: 8px;
+    }
+    .comment-actions-row {
+        display: flex;
+        gap: 16px;
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-left: 44px;
+        margin-top: 2px;
+    }
+    .comment-replies-list {
+        margin-left: 44px;
+        border-left: 1px solid var(--border-color);
+        padding-left: 12px;
+        margin-top: 8px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .reply-active-tag {
+        background-color: var(--bg-tertiary);
+        padding: 6px 16px;
+        font-size: 12px;
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="post-detail-layout">
+    
+    <!-- Left Media slider viewport -->
+    <div class="detail-left">
+        <div class="post-media-slider" id="slider-{{ post.id }}">
+            {% for item in post.media.all %}
+                {% if item.is_video %}
+                <video src="{{ item.file.url }}" controls loop muted autoplay class="post-media-item" style="height: 100%; object-fit: contain; aspect-ratio: unset;"></video>
+                {% else %}
+                <img src="{{ item.file.url }}" class="post-media-item" style="height: 100%; object-fit: contain; aspect-ratio: unset;" alt="Post media">
+                {% endif %}
+            {% endfor %}
+        </div>
+        
+        {% if post.media.all.count > 1 %}
+        <button class="slider-btn prev" onclick="moveSlider({{ post.id }}, -1)">&#10094;</button>
+        <button class="slider-btn next" onclick="moveSlider({{ post.id }}, 1)">&#10095;</button>
+        {% endif %}
+    </div>
+    
+    <!-- Right sidebar details thread -->
+    <div class="detail-right">
+        
+        <div class="detail-header">
+            <div class="post-user-info">
+                <a href="{% url 'profile' username=post.author.username %}">
+                    <img src="{{ post.author.profile.avatar.url }}" class="post-avatar" alt="{{ post.author.username }}">
+                </a>
+                <div>
+                    <a href="{% url 'profile' username=post.author.username %}" class="post-username">{{ post.author.username }}</a>
+                    {% if post.location %}<div class="post-location">{{ post.location }}</div>{% endif %}
+                </div>
+            </div>
+            
+            {% if request.user == post.author %}
+            <button onclick="confirmDeletePost({{ post.id }})" style="color: var(--accent-color); font-weight:600; font-size:13px;">Delete</button>
+            {% endif %}
+        </div>
+        
+        <!-- Scrollable comments list -->
+        <div class="comments-scroll-area" id="detail-comments-list">
+            <!-- Caption as the first comment -->
+            <div class="comment-item">
+                <div class="comment-main-row">
+                    <img src="{{ post.author.profile.avatar.url }}" class="post-avatar" style="width: 32px; height: 32px;">
+                    <div class="comment-text-wrapper">
+                        <span class="comment-user">{{ post.author.username }}</span>
+                        <span>{{ post.caption }}</span>
+                    </div>
+                </div>
+            </div>
+            <hr style="border: 0; border-top: 1px solid var(--border-color); margin: 4px 0;">
+            
+            <!-- Injected comments loop by JavaScript -->
+        </div>
+        
+        <!-- Actions Panel -->
+        <div class="post-actions" style="border-top: 1px solid var(--border-color);">
+            <div class="action-left">
+                <button class="action-btn" id="detail-like-btn" onclick="detailToggleLike({{ post.id }})">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z"/></svg>
+                </button>
+            </div>
+            <button class="action-btn" id="detail-save-btn" onclick="detailToggleSave({{ post.id }})">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+            </button>
+        </div>
+        
+        <!-- Info count panel -->
+        <div class="post-info-panel" style="padding-bottom: 8px;">
+            <div class="likes-count"><span id="detail-likes-count">0</span> likes</div>
+            <div class="post-time" id="detail-post-time"></div>
+        </div>
+        
+        <!-- Nested reply indicator banner -->
+        <div class="reply-active-tag" id="reply-tag-box">
+            <span>Replying to <span id="reply-target-user" style="font-weight:600;"></span></span>
+            <button onclick="cancelReplyMode()" style="font-weight:700;">&times;</button>
+        </div>
+
+        <!-- Input Box -->
+        <div class="comment-input-area">
+            <input type="text" placeholder="Add a comment..." id="detail-comment-input">
+            <button class="comment-post-btn" onclick="submitDetailComment({{ post.id }})">Post</button>
+        </div>
+        
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/feed.js' %}"></script>
+<script>
+    let currentParentCommentId = null;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        loadDetailComments();
+        loadPostDetailState();
+    });
+
+    function loadPostDetailState() {
+        // Fetch detailed post object stats
+        fetch('/api/posts/feed/')
+            .then(res => res.json())
+            .then(data => {
+                const currentPost = data.results.find(p => p.id === {{ post.id }});
+                if (currentPost) {
+                    document.getElementById('detail-likes-count').textContent = currentPost.likes_count;
+                    document.getElementById('detail-post-time').textContent = formatDate(currentPost.created_at);
+                    
+                    const likeBtn = document.getElementById('detail-like-btn');
+                    if (currentPost.is_liked) {
+                        likeBtn.classList.add('liked');
+                    }
+                    const saveBtn = document.getElementById('detail-save-btn');
+                    if (currentPost.is_saved) {
+                        saveBtn.classList.add('saved');
+                    }
+                }
+            });
+    }
+
+    function loadDetailComments() {
+        const list = document.getElementById('detail-comments-list');
+        
+        // Retain Caption entry
+        const captionHtml = list.firstElementChild.outerHTML;
+        list.innerHTML = captionHtml + '<hr style="border: 0; border-top: 1px solid var(--border-color); margin: 4px 0;">';
+
+        fetch('/api/posts/{{ post.id }}/comments/')
+            .then(res => res.json())
+            .then(comments => {
+                comments.forEach(comment => {
+                    const el = document.createElement('div');
+                    el.className = 'comment-item';
+                    
+                    // Replies loop
+                    let repliesHtml = '';
+                    if (comment.replies && comment.replies.length > 0) {
+                        repliesHtml = '<div class="comment-replies-list">';
+                        comment.replies.forEach(reply => {
+                            repliesHtml += `
+                                <div class="comment-main-row" style="font-size:12.5px;">
+                                    <img src="${reply.author_avatar || '/media/avatars/default.png'}" class="post-avatar" style="width:26px;height:26px;">
+                                    <div class="comment-text-wrapper">
+                                        <span class="comment-user">${reply.author_username}</span>
+                                        <span>${reply.content}</span>
+                                    </div>
+                                    ${(reply.author === {{ request.user.id }} || {{ request.user.id }} === {{ post.author.id }}) ? `
+                                        <button onclick="deletePostComment(${reply.id})" style="color:var(--text-muted);font-size:10px;">&times;</button>
+                                    ` : ''}
+                                </div>
+                            `;
+                        });
+                        repliesHtml += '</div>';
+                    }
+
+                    el.innerHTML = `
+                        <div class="comment-main-row">
+                            <img src="${comment.author_avatar || '/media/avatars/default.png'}" class="post-avatar" style="width:32px;height:32px;">
+                            <div class="comment-text-wrapper">
+                                <span class="comment-user">${comment.author_username}</span>
+                                <span>${comment.content}</span>
+                            </div>
+                            ${(comment.author === {{ request.user.id }} || {{ request.user.id }} === {{ post.author.id }}) ? `
+                                <button onclick="deletePostComment(${comment.id})" style="color:var(--text-muted);font-size:12px;">&times;</button>
+                            ` : ''}
+                        </div>
+                        <div class="comment-actions-row">
+                            <span>${formatDate(comment.created_at)}</span>
+                            <button onclick="activateReplyMode(${comment.id}, '${comment.author_username}')" style="font-weight:600;">Reply</button>
+                        </div>
+                        ${repliesHtml}
+                    `;
+                    list.appendChild(el);
+                });
+            });
+    }
+
+    function activateReplyMode(commentId, username) {
+        currentParentCommentId = commentId;
+        document.getElementById('reply-target-user').textContent = `@${username}`;
+        document.getElementById('reply-tag-box').style.display = 'flex';
+        document.getElementById('detail-comment-input').focus();
+    }
+
+    function cancelReplyMode() {
+        currentParentCommentId = null;
+        document.getElementById('reply-tag-box').style.display = 'none';
+        document.getElementById('detail-comment-input').value = '';
+    }
+
+    function submitDetailComment(postId) {
+        const input = document.getElementById('detail-comment-input');
+        const content = input.value.trim();
+        if (!content) return;
+
+        const csrfToken = getCookie('csrftoken');
+        const payload = { content: content };
+        if (currentParentCommentId) {
+            payload.parent_id = currentParentCommentId;
+        }
+
+        fetch(`/api/posts/${postId}/comments/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify(payload)
+        })
+        .then(res => {
+            if (res.ok) {
+                input.value = '';
+                cancelReplyMode();
+                loadDetailComments();
+            }
+        });
+    }
+
+    function deletePostComment(commentId) {
+        if (!confirm('Are you sure you want to delete this comment?')) return;
+        const csrfToken = getCookie('csrftoken');
+        
+        fetch(`/api/comments/${commentId}/delete/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(res => {
+            if (res.ok) loadDetailComments();
+        });
+    }
+
+    function confirmDeletePost(postId) {
+        if (!confirm('Are you sure you want to delete this post?')) return;
+        const csrfToken = getCookie('csrftoken');
+
+        fetch(`/api/posts/${postId}/delete/`, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(res => {
+            if (res.ok) {
+                alert('Post deleted successfully.');
+                window.location.href = '/profile/{{ request.user.username }}/';
+            }
+        });
+    }
+
+    function detailToggleLike(postId) {
+        const likeBtn = document.getElementById('detail-like-btn');
+        const csrfToken = getCookie('csrftoken');
+
+        fetch(`/api/posts/${postId}/like/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.liked) {
+                likeBtn.classList.add('liked');
+            } else {
+                likeBtn.classList.remove('liked');
+            }
+            document.getElementById('detail-likes-count').textContent = data.likes_count;
+        });
+    }
+
+    function detailToggleSave(postId) {
+        const saveBtn = document.getElementById('detail-save-btn');
+        const csrfToken = getCookie('csrftoken');
+
+        fetch(`/api/posts/${postId}/save/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.saved) {
+                saveBtn.classList.add('saved');
+            } else {
+                saveBtn.classList.remove('saved');
+            }
+        });
+    }
+</script>
+{% endblock %}

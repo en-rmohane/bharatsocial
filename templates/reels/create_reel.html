@@ -1,0 +1,792 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Upload Reel • BharatSocial{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/profile.css' %}">
+<style>
+    .create-reel-card {
+        background-color: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 30px;
+        max-width: 650px;
+        margin: 40px auto;
+        box-shadow: var(--shadow-premium);
+        transition: var(--transition);
+    }
+    
+    /* --- Premium AI Assistant Panel --- */
+    .ai-assistant-wrapper {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        margin-top: 24px;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+    }
+    
+    .ai-assistant-header {
+        background: var(--color-chakra-blue);
+        color: white;
+        padding: 16px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .ai-assistant-title {
+        font-size: 15px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .ai-tabs {
+        display: flex;
+        border-bottom: 1px solid var(--border-color);
+        background: var(--bg-primary);
+        overflow-x: auto;
+    }
+    .ai-tab-btn {
+        flex: 1;
+        padding: 12px 16px;
+        font-size: 12px;
+        font-weight: 600;
+        text-align: center;
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        color: var(--text-secondary);
+        white-space: nowrap;
+        transition: var(--transition);
+    }
+    .ai-tab-btn.active {
+        color: var(--color-saffron);
+        border-bottom-color: var(--color-saffron);
+        background-color: var(--hover-bg);
+    }
+    
+    .ai-tab-content {
+        padding: 20px;
+        display: none;
+    }
+    .ai-tab-content.active {
+        display: block;
+    }
+    
+    .ai-suggestion-card {
+        background-color: var(--bg-primary);
+        border: 1px dashed var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 14px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: var(--transition);
+        text-align: left;
+        position: relative;
+        margin-bottom: 10px;
+        box-shadow: var(--shadow);
+    }
+    .ai-suggestion-card:hover {
+        border-style: solid;
+        border-color: var(--color-saffron);
+        background-color: var(--color-saffron-light);
+        transform: translateY(-1px);
+    }
+    
+    .ai-tag-chip {
+        display: inline-flex;
+        align-items: center;
+        padding: 6px 12px;
+        background-color: var(--bg-primary);
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        font-size: 12px;
+        cursor: pointer;
+        margin-right: 6px;
+        margin-bottom: 6px;
+        transition: var(--transition);
+    }
+    .ai-tag-chip:hover {
+        border-color: var(--color-saffron);
+        background-color: var(--color-saffron-light);
+        color: var(--color-saffron-dark);
+    }
+    
+    /* Input Styling */
+    .ai-input-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        text-align: left;
+        margin-bottom: 14px;
+    }
+    .ai-input-group label {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--text-secondary);
+    }
+    .ai-select, .ai-input {
+        width: 100%;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-md);
+        padding: 10px;
+        background: var(--bg-primary);
+        color: var(--text-primary);
+        font-size: 13.5px;
+        transition: var(--transition);
+    }
+    .ai-select:focus, .ai-input:focus {
+        border-color: var(--color-saffron);
+        outline: none;
+    }
+    
+    /* Metrics display */
+    .metric-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px dashed var(--border-color);
+    }
+    .metric-name {
+        font-size: 13px;
+        font-weight: 500;
+    }
+    .metric-bar-wrapper {
+        width: 120px;
+        height: 8px;
+        background: var(--border-color);
+        border-radius: 4px;
+        overflow: hidden;
+    }
+    .metric-bar {
+        height: 100%;
+        background: var(--green-gradient);
+    }
+    
+    .safety-warning {
+        background-color: #fef2f2;
+        border: 1px solid #fca5a5;
+        color: #991b1b;
+        border-radius: var(--radius-md);
+        padding: 12px;
+        font-size: 12.5px;
+        margin-bottom: 12px;
+        text-align: left;
+    }
+    [data-theme="dark"] .safety-warning {
+        background-color: #450a0a;
+        border-color: #7f1d1d;
+        color: #fca5a5;
+    }
+    
+    /* Float Spark Button */
+    .spark-trigger-btn {
+        background: var(--accent-gradient);
+        color: white;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 10px var(--color-saffron-light);
+        transition: var(--transition);
+        vertical-align: middle;
+        margin-left: 8px;
+    }
+    .spark-trigger-btn:hover {
+        transform: rotate(15deg) scale(1.1);
+        box-shadow: 0 6px 15px rgba(255, 103, 31, 0.4);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="create-reel-card">
+    <h2 style="font-size: 24px; font-weight: 300; margin-bottom: 24px; text-align: center;">Upload Reel</h2>
+    
+    {% if messages %}
+    <div style="margin-bottom: 20px;">
+        {% for message in messages %}
+        <div style="color: var(--color-saffron); font-size:14px; text-align:center; font-weight:500;">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data" onsubmit="return validateReelForm()">
+        {% csrf_token %}
+
+        <div class="edit-profile-row" style="grid-template-columns: 1fr; align-items: flex-start; gap: 8px;">
+            <label for="video_file" style="text-align: left; font-weight: 600;">Select Video File (Vertical format MP4)</label>
+            <input type="file" name="video_file" id="video_file" accept="video/mp4,video/quicktime,video/x-matroska" required>
+        </div>
+
+        <div class="edit-profile-row" style="grid-template-columns: 1fr; align-items: flex-start; gap: 8px; margin-top: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <label for="caption" style="text-align: left; font-weight: 600;">Caption</label>
+                <div style="display: flex; align-items: center;">
+                    <span style="font-size: 11px; color: var(--text-secondary); font-weight: 600;">AI Assistant</span>
+                    <button type="button" class="spark-trigger-btn" onclick="scrollToAI()" title="Open AI Creator Panel">✨</button>
+                </div>
+            </div>
+            <textarea name="caption" id="caption" rows="3" placeholder="Add a caption to your Reel..." style="width: 100%; border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; background: var(--bg-primary); color: var(--text-primary);" onkeyup="updatePreviewScoresLive()"></textarea>
+        </div>
+
+        <!-- --- Advanced AI Creator Assistant Panel --- -->
+        <div class="ai-assistant-wrapper" id="ai-assistant-section">
+            <div class="ai-assistant-header">
+                <div class="ai-assistant-title">
+                    <span>✨ AI Reel Copilot (एआई क्रिएटर असिस्टेंट)</span>
+                </div>
+                <span style="font-size:11px; opacity:0.8; font-weight:500;">v2.0 Beta</span>
+            </div>
+            
+            <div class="ai-tabs">
+                <div class="ai-tab-btn active" onclick="switchAITab('ai-tab-gen')">🎨 Generate</div>
+                <div class="ai-tab-btn" onclick="switchAITab('ai-tab-refine'); loadTrendingSuggestions();">🛠️ Refine & Translate</div>
+                <div class="ai-tab-btn" onclick="switchAITab('ai-tab-insights')">📊 Engagement Score</div>
+                <div class="ai-tab-btn" onclick="switchAITab('ai-tab-ideas')">💡 Trend Discovery</div>
+                <div class="ai-tab-btn" onclick="switchAITab('ai-tab-history')">📜 History Log</div>
+            </div>
+
+            <!-- Tab 1: Generate Captions and tags -->
+            <div class="ai-tab-content active" id="ai-tab-gen">
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div class="ai-input-group">
+                        <label>Category (श्रेणी)</label>
+                        <select id="ai-category" class="ai-select">
+                            <option value="General">General</option>
+                            <option value="Travel">Travel (यात्रा)</option>
+                            <option value="Food">Food (भोजन)</option>
+                            <option value="Fashion">Fashion (शैली)</option>
+                            <option value="Tech">Tech (तकनीक)</option>
+                            <option value="Fitness">Fitness (स्वास्थ्य)</option>
+                        </select>
+                    </div>
+                    <div class="ai-input-group">
+                        <label>Keywords (संकेत शब्द)</label>
+                        <input type="text" id="ai-keywords" class="ai-input" placeholder="e.g. fields, lifestyle">
+                    </div>
+                </div>
+                
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                    <div class="ai-input-group">
+                        <label>Length (लंबाई)</label>
+                        <select id="ai-length" class="ai-select">
+                            <option value="Medium">Medium (मध्यम)</option>
+                            <option value="Short">Short (छोटा)</option>
+                            <option value="Long">Long (विस्तृत)</option>
+                        </select>
+                    </div>
+                    <div class="ai-input-group">
+                        <label>Language (भाषा)</label>
+                        <select id="ai-language" class="ai-select">
+                            <option value="en">English</option>
+                            <option value="hi">Hindi (हिंदी)</option>
+                            <option value="hinglish">Hinglish (हिंदी + Eng)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button type="button" class="profile-btn profile-btn-primary" style="width:100%; padding:12px; margin-top:8px;" onclick="generateAICaptionAndHashtags()">
+                    ✨ Generate Reel Content
+                </button>
+                
+                <div id="ai-gen-results" style="display:none; flex-direction:column; gap:14px; margin-top:20px; border-top:1px solid var(--border-color); padding-top:16px;">
+                    <div style="font-size:12.5px; background-color:rgba(18, 136, 7, 0.1); color:var(--color-green-dark); padding:10px 14px; border-radius:var(--radius-md); display:flex; align-items:center; gap:8px; text-align:left;">
+                        <span>📅</span>
+                        <span><strong>Best Engagement Slot:</strong> <span id="ai-posting-time"></span></span>
+                    </div>
+                    
+                    <div style="text-align:left;">
+                        <label style="font-size:12px; font-weight:700; display:block; margin-bottom:8px; color:var(--text-primary);">Suggested Caption (कैप्शन चुनें):</label>
+                        <div class="ai-suggestion-card" onclick="applyAICaptionText()">
+                            <p id="ai-caption-text" style="line-height:1.4;"></p>
+                            <span style="font-size:10px; color:var(--color-saffron); font-weight:600; display:block; margin-top:8px;">👉 Click to Apply to Reel</span>
+                        </div>
+                    </div>
+                    
+                    <div style="text-align:left;">
+                        <label style="font-size:12px; font-weight:700; display:block; margin-bottom:8px; color:var(--text-primary);">Suggested Hashtags (टैप करके जोड़ें):</label>
+                        <div id="ai-tags-container" style="margin-bottom:8px;"></div>
+                        <div style="display:flex; gap:16px; align-items:center;">
+                            <button type="button" class="profile-btn" style="padding:6px 12px; font-size:11px;" onclick="applyAllGeneratedTags()">+ Add All</button>
+                            <button type="button" style="font-size:11.5px; color:var(--text-secondary); background:none; border:none; padding:0; cursor:pointer;" onclick="generateAICaptionAndHashtags()">🔄 Regenerate</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 2: Refine and Translate -->
+            <div class="ai-tab-content" id="ai-tab-refine">
+                <div style="text-align:left; display:flex; flex-direction:column; gap:16px;">
+                    <div>
+                        <h4 style="font-size:13px; font-weight:700; margin-bottom:6px; color:var(--text-primary);">AI Content Improvement (लेखन सुधार)</h4>
+                        <p style="font-size:11.5px; color:var(--text-secondary); margin-bottom:10px;">Optimize the current caption above for better grammar, active voice, and emoji insertion.</p>
+                        <button type="button" class="profile-btn profile-btn-active" style="padding:8px 16px; font-size:12.5px;" onclick="improveCurrentCaption()">
+                            🪄 Optimize Caption
+                        </button>
+                    </div>
+                    
+                    <div style="border-top:1px solid var(--border-color); padding-top:16px;">
+                        <h4 style="font-size:13px; font-weight:700; margin-bottom:6px; color:var(--text-primary);">AI Multi-Language Translation (अनुवाद)</h4>
+                        <p style="font-size:11.5px; color:var(--text-secondary); margin-bottom:10px;">Translate the caption into major regional languages of India.</p>
+                        <div style="display:flex; gap:10px; margin-bottom:10px;">
+                            <select id="ai-target-lang" class="ai-select" style="flex:1;">
+                                <option value="hi">Hindi (हिंदी)</option>
+                                <option value="pa">Punjabi (ਪੰਜਾਬੀ)</option>
+                                <option value="mr">Marathi (मराठी)</option>
+                                <option value="bn">Bengali (বাংলা)</option>
+                                <option value="ta">Tamil (தமிழ்)</option>
+                                <option value="te">Telugu (తెలుగు)</option>
+                                <option value="kn">Kannada (ಕನ್ನಡ)</option>
+                            </select>
+                            <button type="button" class="profile-btn" style="padding:8px 16px; border-color:var(--color-chakra-blue); color:var(--color-chakra-blue);" onclick="translateCurrentCaption()">
+                                🌐 Translate
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div style="border-top:1px solid var(--border-color); padding-top:16px;">
+                        <h4 style="font-size:13px; font-weight:700; margin-bottom:6px; color:var(--text-primary);">AI Safety & Guidelines Scan (सुरक्षा जांच)</h4>
+                        <button type="button" class="profile-btn" style="padding:8px 16px; border-color:#d32f2f; color:#d32f2f;" onclick="scanCaptionSafety()">
+                            🛡️ Scan for Spam/Abuse
+                        </button>
+                        <div id="safety-scan-results" style="margin-top:10px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 3: Insights -->
+            <div class="ai-tab-content" id="ai-tab-insights">
+                <div style="text-align:left;">
+                    <h4 style="font-size:14px; font-weight:700; margin-bottom:12px; color:var(--text-primary);">Reel Analytics & Performance Predictions</h4>
+                    <p style="font-size:12px; color:var(--text-secondary); margin-bottom:16px;">Calculated instantly based on readability, hashtag relevance, and post time optimization.</p>
+                    
+                    <div class="metric-row">
+                        <span class="metric-name">Engagement Score (लगाव दर)</span>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div class="metric-bar-wrapper">
+                                <div class="metric-bar" id="score-bar-engagement" style="width: 70%;"></div>
+                            </div>
+                            <span id="score-text-engagement" style="font-weight:700; font-size:13px;">70/100</span>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-row">
+                        <span class="metric-name">Readability Index (पठनीयता)</span>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div class="metric-bar-wrapper">
+                                <div class="metric-bar" id="score-bar-readability" style="width: 80%; background:var(--accent-gradient);"></div>
+                            </div>
+                            <span id="score-text-readability" style="font-weight:700; font-size:13px;">80/100</span>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-row">
+                        <span class="metric-name">Hashtag Quality Score</span>
+                        <div style="display:flex; align-items:center; gap:8px;">
+                            <div class="metric-bar-wrapper">
+                                <div class="metric-bar" id="score-bar-tags" style="width: 50%;"></div>
+                            </div>
+                            <span id="score-text-tags" style="font-weight:700; font-size:13px;">50/100</span>
+                        </div>
+                    </div>
+                    
+                    <div class="metric-row">
+                        <span class="metric-name">Predicted Reach Potential</span>
+                        <span id="score-text-reach" style="font-weight:700; font-size:13px; color:var(--color-green-dark);">Medium (मध्यम)</span>
+                    </div>
+                    
+                    <button type="button" class="profile-btn" style="width:100%; margin-top:16px;" onclick="updatePreviewScoresLive(true)">
+                        🔄 Recalculate Metrics
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab 4: Trend Discovery -->
+            <div class="ai-tab-content" id="ai-tab-ideas">
+                <div style="text-align:left; display:flex; flex-direction:column; gap:16px;">
+                    <div>
+                        <h4 style="font-size:13px; font-weight:700; margin-bottom:4px; color:var(--text-primary);">Niche Content Ideas (ट्रेंडिंग विषय)</h4>
+                        <p style="font-size:11.5px; color:var(--text-secondary); margin-bottom:12px;">Discover what works best in your selected category niche today.</p>
+                        <div id="ai-ideas-list" style="display:flex; flex-direction:column; gap:10px;">
+                            <div style="font-size:12px; color:var(--text-secondary);">Select a Category in the "Generate" tab and run content generation to load matching trends!</div>
+                        </div>
+                    </div>
+                    
+                    <div style="border-top:1px solid var(--border-color); padding-top:16px;">
+                        <h4 style="font-size:13px; font-weight:700; margin-bottom:8px; color:var(--text-primary);">Hot & Personalized Hashtags</h4>
+                        <div id="ai-trending-tags-container"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab 5: History Log -->
+            <div class="ai-tab-content" id="ai-tab-history">
+                <div style="text-align:left;">
+                    <h4 style="font-size:13px; font-weight:700; margin-bottom:6px; color:var(--text-primary);">Generated Captions History</h4>
+                    <p style="font-size:11.5px; color:var(--text-secondary); margin-bottom:12px;">Review and reuse content segments generated during this session.</p>
+                    <div id="ai-history-list" style="display:flex; flex-direction:column; gap:10px;">
+                        <div style="font-size:12px; color:var(--text-secondary); text-align:center; padding:10px 0;">No history logged yet. Start generating!</div>
+                    </div>
+                    <button type="button" class="profile-btn" style="width:100%; margin-top:12px;" onclick="clearAIHistory()">
+                        🗑️ Clear History Log
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="edit-profile-row" style="margin-top: 30px;">
+            <button type="submit" class="profile-btn profile-btn-primary" style="padding: 12px 24px; font-size: 15px; width: 100%; border-radius: var(--radius-sm);">Post Reel</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        loadHistoryFromStorage();
+    });
+
+    function scrollToAI() {
+        document.getElementById('ai-assistant-section').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // --- Tab Switcher ---
+    function switchAITab(tabId) {
+        document.querySelectorAll('.ai-tab-content').forEach(el => el.classList.remove('active'));
+        document.querySelectorAll('.ai-tab-btn').forEach(el => el.classList.remove('active'));
+        
+        document.getElementById(tabId).classList.add('active');
+        
+        // Find corresponding button and make active
+        const tabs = ['ai-tab-gen', 'ai-tab-refine', 'ai-tab-insights', 'ai-tab-ideas', 'ai-tab-history'];
+        const idx = tabs.indexOf(tabId);
+        if (idx !== -1) {
+            document.querySelectorAll('.ai-tab-btn')[idx].classList.add('active');
+        }
+    }
+
+    // --- AI Assist Handler ---
+    let lastGeneratedCaption = '';
+    let lastGeneratedTags = [];
+
+    function generateAICaptionAndHashtags() {
+        const category = document.getElementById('ai-category').value;
+        const keywords = document.getElementById('ai-keywords').value;
+        const length = document.getElementById('ai-length').value;
+        const language = document.getElementById('ai-language').value;
+        const csrfToken = getCookie('csrftoken');
+        
+        fetch('/api/posts/ai-assist/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ category: category, keywords: keywords, length: length, language: language })
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('ai-gen-results').style.display = 'flex';
+            document.getElementById('ai-posting-time').textContent = data.best_time;
+            
+            // Set values
+            lastGeneratedCaption = data.caption;
+            lastGeneratedTags = data.hashtags;
+            document.getElementById('ai-caption-text').textContent = data.caption;
+            
+            // Render tags
+            const tagsBox = document.getElementById('ai-tags-container');
+            tagsBox.innerHTML = '';
+            data.hashtags.forEach(tag => {
+                const chip = document.createElement('span');
+                chip.className = 'ai-tag-chip';
+                chip.textContent = tag;
+                chip.onclick = () => addSingleAIHashtag(tag);
+                tagsBox.appendChild(chip);
+            });
+            
+            // Save to history
+            saveToAIHistory(data.caption);
+            
+            // Load custom trends matching niche
+            loadNicheTrends(category);
+            
+            // Update preview scores
+            updateMetricsUI(data.scores);
+        })
+        .catch(err => console.error('Error generating content:', err));
+    }
+
+    function applyAICaptionText() {
+        if (lastGeneratedCaption) {
+            document.getElementById('caption').value = lastGeneratedCaption;
+            showGlobalAlert('Caption applied to Reel!');
+        }
+    }
+
+    function addSingleAIHashtag(tag) {
+        const textarea = document.getElementById('caption');
+        if (!textarea.value.includes(tag)) {
+            textarea.value = (textarea.value.trim() + " " + tag).trim();
+        }
+    }
+
+    function applyAllGeneratedTags() {
+        const textarea = document.getElementById('caption');
+        lastGeneratedTags.forEach(tag => {
+            if (!textarea.value.includes(tag)) {
+                textarea.value = (textarea.value.trim() + " " + tag).trim();
+            }
+        });
+    }
+
+    // --- Tab 2: Refine, Translate & Safety ---
+    function improveCurrentCaption() {
+        const text = document.getElementById('caption').value;
+        if (!text) {
+            alert('Please write or generate a caption first!');
+            return;
+        }
+        
+        const csrfToken = getCookie('csrftoken');
+        fetch('/api/ai/content-improver/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ caption: text })
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('caption').value = data.improved_caption;
+            showGlobalAlert('Reel caption optimized!');
+            updatePreviewScoresLive();
+        });
+    }
+
+    function translateCurrentCaption() {
+        const text = document.getElementById('caption').value;
+        const target = document.getElementById('ai-target-lang').value;
+        if (!text) {
+            alert('Please write or generate a caption first!');
+            return;
+        }
+        
+        const csrfToken = getCookie('csrftoken');
+        fetch('/api/ai/translation/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ caption: text, target_lang: target })
+        })
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById('caption').value = data.translated_text;
+            showGlobalAlert(`Translated to ${data.language_name}!`);
+            updatePreviewScoresLive();
+        });
+    }
+
+    function scanCaptionSafety() {
+        const text = document.getElementById('caption').value;
+        const csrfToken = getCookie('csrftoken');
+        
+        fetch('/api/ai/safety-filter/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ text: text })
+        })
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById('safety-scan-results');
+            container.innerHTML = '';
+            
+            if (data.is_safe) {
+                container.innerHTML = `<div style="font-size:12.5px; color:var(--color-green-dark); background:#e6f6e5; border:1px solid var(--color-green); padding:10px; border-radius:var(--radius-md); font-weight:500;">✅ Passed safety scan.</div>`;
+            } else {
+                let listHtml = '';
+                data.warnings.forEach(w => {
+                    listHtml += `<li>${w}</li>`;
+                });
+                container.innerHTML = `
+                    <div class="safety-warning">
+                        <strong>⚠️ Guidelines Flagged Warnings:</strong>
+                        <ul style="margin-top:5px; padding-left:20px;">${listHtml}</ul>
+                    </div>`;
+            }
+        });
+    }
+
+    // --- Tab 3: Insights Live Score ---
+    function updatePreviewScoresLive(forceRefresh = false) {
+        const text = document.getElementById('caption').value;
+        if (!text && !forceRefresh) return;
+        
+        const hashtags = (text.match(/#\w+/g) || []);
+        const csrfToken = getCookie('csrftoken');
+        
+        fetch('/api/ai/post-preview-score/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ caption: text, hashtags: hashtags })
+        })
+        .then(res => res.json())
+        .then(data => {
+            updateMetricsUI(data);
+        });
+    }
+
+    function updateMetricsUI(scores) {
+        document.getElementById('score-text-engagement').textContent = `${scores.engagement_score}/100`;
+        document.getElementById('score-bar-engagement').style.width = `${scores.engagement_score}%`;
+        
+        document.getElementById('score-text-readability').textContent = `${scores.readability_score}/100`;
+        document.getElementById('score-bar-readability').style.width = `${scores.readability_score}%`;
+        
+        document.getElementById('score-text-tags').textContent = `${scores.hashtag_score}/100`;
+        document.getElementById('score-bar-tags').style.width = `${scores.hashtag_score}%`;
+        
+        const reachEl = document.getElementById('score-text-reach');
+        reachEl.textContent = scores.reach_prediction;
+        if (scores.reach_prediction.includes('High')) {
+            reachEl.style.color = 'var(--color-green-dark)';
+        } else if (scores.reach_prediction.includes('Medium')) {
+            reachEl.style.color = 'var(--color-saffron)';
+        } else {
+            reachEl.style.color = '#d32f2f';
+        }
+    }
+
+    // --- Tab 4: Trend Discovery ---
+    function loadNicheTrends(niche) {
+        const csrfToken = getCookie('csrftoken');
+        fetch('/api/ai/trend-discovery/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ niche: niche })
+        })
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById('ai-ideas-list');
+            container.innerHTML = '';
+            
+            data.ideas.forEach(idea => {
+                const item = document.createElement('div');
+                item.style.backgroundColor = 'var(--bg-primary)';
+                item.style.border = '1px solid var(--border-color)';
+                item.style.borderRadius = 'var(--radius-md)';
+                item.style.padding = '12px';
+                item.innerHTML = `
+                    <div style="font-weight:700; font-size:12.5px; color:var(--color-saffron-dark); margin-bottom:4px;">${idea.title}</div>
+                    <div style="font-size:11.5px; color:var(--text-secondary); margin-bottom:6px;">${idea.concept}</div>
+                    <div>${idea.tags.map(t => `<span style="font-size:11px; color:var(--color-chakra-blue); font-weight:600; margin-right:8px;">${t}</span>`).join('')}</div>
+                `;
+                container.appendChild(item);
+            });
+        });
+    }
+
+    function loadTrendingSuggestions() {
+        const csrfToken = getCookie('csrftoken');
+        fetch('/api/ai/trend-discovery/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+            body: JSON.stringify({ niche: 'General' })
+        })
+        .then(res => res.json())
+        .then(data => {
+            const container = document.getElementById('ai-trending-tags-container');
+            container.innerHTML = '';
+            
+            const tags = data.hashtag_trends.local.concat(data.hashtag_trends.global);
+            tags.forEach(tag => {
+                const chip = document.createElement('span');
+                chip.className = 'ai-tag-chip';
+                chip.textContent = tag;
+                chip.onclick = () => addSingleAIHashtag(tag);
+                container.appendChild(chip);
+            });
+        });
+    }
+
+    // --- Tab 5: History Management ---
+    function saveToAIHistory(caption) {
+        let history = JSON.parse(localStorage.getItem('ai_reels_history') || '[]');
+        if (!history.includes(caption)) {
+            history.unshift(caption);
+            if (history.length > 5) history.pop();
+            localStorage.setItem('ai_reels_history', JSON.stringify(history));
+            loadHistoryFromStorage();
+        }
+    }
+
+    function loadHistoryFromStorage() {
+        const historyList = document.getElementById('ai-history-list');
+        if (!historyList) return;
+        
+        let history = JSON.parse(localStorage.getItem('ai_reels_history') || '[]');
+        historyList.innerHTML = '';
+        
+        if (history.length === 0) {
+            historyList.innerHTML = '<div style="font-size:12px; color:var(--text-secondary); text-align:center; padding:10px 0;">No history logged yet. Start generating!</div>';
+            return;
+        }
+        
+        history.forEach((caption, index) => {
+            const item = document.createElement('div');
+            item.className = 'ai-suggestion-card';
+            item.onclick = () => {
+                document.getElementById('caption').value = caption;
+                showGlobalAlert('History caption applied!');
+            };
+            item.innerHTML = `<span style="font-weight:700; font-size:11px; color:var(--text-secondary); display:block; margin-bottom:4px;">Log #${index+1}</span>${caption}`;
+            historyList.appendChild(item);
+        });
+    }
+
+    function clearAIHistory() {
+        localStorage.removeItem('ai_reels_history');
+        loadHistoryFromStorage();
+        showGlobalAlert('History log cleared!');
+    }
+
+    function validateReelForm() {
+        const caption = document.getElementById('caption').value;
+        const scamPatterns = /free gift card|claim your money|double your cash|double your money|click here to win|guaranteed income/i;
+        if (scamPatterns.test(caption)) {
+            alert('⚠️ Reel contains patterns flagged as potential spam or scam under guidelines.');
+            return false;
+        }
+        return true;
+    }
+
+    function showGlobalAlert(message) {
+        const toast = document.createElement('div');
+        toast.style.position = 'fixed';
+        toast.style.bottom = '20px';
+        toast.style.left = '50%';
+        toast.style.transform = 'translateX(-50%)';
+        toast.style.backgroundColor = 'var(--color-chakra-blue)';
+        toast.style.color = 'white';
+        toast.style.padding = '10px 20px';
+        toast.style.borderRadius = '20px';
+        toast.style.fontSize = '13.5px';
+        toast.style.fontWeight = '600';
+        toast.style.zIndex = '9999';
+        toast.textContent = message;
+        document.body.appendChild(toast);
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.5s ease';
+            setTimeout(() => toast.remove(), 500);
+        }, 2000);
+    }
+</script>
+{% endblock %}

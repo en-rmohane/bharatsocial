@@ -1,0 +1,172 @@
+.admin-layout {
+    width: 100%;
+    max-width: 1100px;
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.admin-header {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 20px;
+}
+
+.admin-title {
+    font-size: 28px;
+    font-weight: 700;
+}
+
+/* --- Metrics Grid --- */
+.metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+}
+
+.metric-card {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    box-shadow: var(--shadow);
+}
+
+.metric-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--accent-color);
+}
+
+.metric-label {
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+/* --- Content Panels --- */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 30px;
+}
+
+.panel-card {
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.panel-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 700;
+    font-size: 16px;
+    background-color: var(--bg-secondary);
+}
+
+.panel-body {
+    padding: 20px;
+    overflow-x: auto;
+}
+
+/* --- Tables styling --- */
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 14px;
+}
+
+.admin-table th {
+    padding: 12px 16px;
+    border-bottom: 2px solid var(--border-color);
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+.admin-table td {
+    padding: 16px;
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+
+.admin-table tbody tr:hover {
+    background-color: var(--hover-bg);
+}
+
+/* --- Badges --- */
+.badge {
+    padding: 4px 10px;
+    border-radius: var(--radius-sm);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.badge-pending {
+    background-color: var(--color-saffron-light);
+    color: var(--color-saffron-dark);
+}
+
+.badge-active {
+    background-color: var(--color-green-light);
+    color: var(--color-green-dark);
+}
+
+.badge-suspended {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+[data-theme="dark"] .badge-suspended {
+    background-color: #450a0a;
+    color: #fca5a5;
+}
+
+/* --- Moderator Button Controls --- */
+.btn-group {
+    display: flex;
+    gap: 8px;
+}
+
+.action-button {
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.action-button:hover {
+    background-color: var(--hover-bg);
+}
+
+.btn-resolve {
+    background: var(--green-gradient) !important;
+    color: white !important;
+    border: none !important;
+}
+.btn-resolve:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(18, 136, 7, 0.25);
+    filter: brightness(1.1);
+}
+
+.btn-danger {
+    background: var(--accent-gradient) !important;
+    color: white !important;
+    border: none !important;
+}
+.btn-danger:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(255, 103, 31, 0.25);
+    filter: brightness(1.1);
+}

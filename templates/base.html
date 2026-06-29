@@ -1,0 +1,124 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}BharatSocial{% endblock %}</title>
+    
+    <!-- Meta tags for security, caching, and design -->
+    <meta name="csrf-token" content="{{ csrf_token }}">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    
+    <!-- Global CSS Stylesheets -->
+    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+    <div class="app-container">
+        
+        <!-- --- Left Sidebar Navigation --- -->
+        {% if user.is_authenticated %}
+        <aside class="sidebar">
+            <div class="logo-container" style="margin-bottom: 16px;">
+                <a href="{% url 'feed' %}" class="logo-text">BharatSocial</a>
+            </div>
+
+            <!-- User Rewards points badge -->
+            <div style="padding: 10px 12px; margin-bottom: 20px; background-color: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: var(--radius-md); display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600;">
+                <span style="font-size: 18px;">🪙</span>
+                <div>
+                    <div style="font-size: 10px; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px;">Balance / रिवॉर्ड्स</div>
+                    <span style="color: var(--accent-color);">{{ request.user.profile.points }}</span> Points
+                </div>
+            </div>
+            
+            <nav class="nav-links">
+                <a href="{% url 'feed' %}" class="nav-item {% if request.resolver_match.url_name == 'feed' %}active{% endif %}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                    <span data-i18n="nav_home">Home</span>
+                </a>
+                
+                <!-- Search (Trigger custom dialog or explore) -->
+                <a href="{% url 'explore' %}" class="nav-item {% if request.resolver_match.url_name == 'explore' %}active{% endif %}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                    <span data-i18n="nav_explore">Explore</span>
+                </a>
+                
+                <a href="{% url 'reels_feed' %}" class="nav-item {% if request.resolver_match.url_name == 'reels_feed' %}active{% endif %}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>
+                    <span data-i18n="nav_reels">Reels</span>
+                </a>
+                
+                <a href="{% url 'chat_inbox' %}" class="nav-item {% if request.resolver_match.url_name == 'chat_inbox' or request.resolver_match.url_name == 'chat_inbox_user' %}active{% endif %}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                    <span data-i18n="nav_messages">Messages</span>
+                </a>
+                
+                <a href="{% url 'notifications' %}" class="nav-item {% if request.resolver_match.url_name == 'notifications' %}active{% endif %}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    <span class="nav-badge" id="notification-unread-count" style="display:none;">0</span>
+                    <span data-i18n="nav_notifications">Notifications</span>
+                </a>
+                
+                <a href="{% url 'create_post' %}" class="nav-item {% if request.resolver_match.url_name == 'create_post' %}active{% endif %}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                    <span data-i18n="nav_create">Create</span>
+                </a>
+                
+                <a href="{% url 'profile' username=request.user.username %}" class="nav-item {% if request.resolver_match.url_name == 'profile' and request.resolver_match.kwargs.username == request.user.username %}active{% endif %}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    <span data-i18n="nav_profile">Profile</span>
+                </a>
+
+                {% if request.user.is_staff %}
+                <a href="{% url 'moderator_dashboard' %}" class="nav-item {% if request.resolver_match.url_name == 'moderator_dashboard' %}active{% endif %}">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="9" y1="21" x2="9" y2="9"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+                    <span data-i18n="nav_moderator">Moderator</span>
+                </a>
+                {% endif %}
+            </nav>
+            
+            <!-- --- Sidebar Footer Controls --- -->
+            <div class="sidebar-footer">
+                <!-- Theme Switch Button -->
+                <button class="switch-btn" id="theme-toggle-btn">
+                    <span id="theme-toggle-icon"></span>
+                    <span>Toggle Theme</span>
+                </button>
+                
+                <!-- Language Selector Switcher -->
+                <div style="display:flex; flex-direction:column; gap:4px; padding:0 12px;">
+                    <select id="lang-switch-select" class="lang-selector">
+                        <option value="en">English</option>
+                        <option value="hi">हिंदी (Hindi)</option>
+                    </select>
+                </div>
+                
+                <!-- Logout Trigger Form -->
+                <form action="{% url 'logout' %}" method="post" id="logout-form" style="width:100%;">
+                    {% csrf_token %}
+                    <button type="submit" class="nav-item" style="width:100%; text-align:left;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                        <span data-i18n="nav_logout">Logout</span>
+                    </button>
+                </form>
+            </div>
+        </aside>
+        {% endif %}
+        
+        <!-- --- Main Content Viewport --- -->
+        <main class="main-content">
+            {% block content %}{% endblock %}
+        </main>
+        
+    </div>
+
+    <!-- Global JS Files -->
+    <script src="{% static 'js/app.js' %}?v=103"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
