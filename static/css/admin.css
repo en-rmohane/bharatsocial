@@ -20,7 +20,7 @@
 /* --- Metrics Grid --- */
 .metrics-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     gap: 20px;
 }
 
@@ -169,4 +169,33 @@
     transform: translateY(-1px);
     box-shadow: 0 4px 10px rgba(255, 103, 31, 0.25);
     filter: brightness(1.1);
+}
+
+@media (max-width: 480px) {
+    .metrics-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    .admin-layout {
+        padding: 16px 12px;
+        gap: 20px;
+    }
+    .admin-title {
+        font-size: 22px;
+    }
+    .panel-body {
+        padding: 12px;
+    }
+    .admin-table th, .admin-table td {
+        padding: 10px 8px;
+        font-size: 13px;
+    }
+    .btn-group {
+        flex-direction: column;
+        gap: 6px;
+    }
+    .action-button {
+        width: 100%;
+        text-align: center;
+    }
 }
