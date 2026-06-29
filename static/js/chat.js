@@ -815,28 +815,58 @@ function openSnapchatCamera() {
         propsCarousel.appendChild(item);
     });
     
-    // Start webcam preview
-    navigator.mediaDevices.getUserMedia({
-        video: { facingMode: "user", width: 640, height: 480 },
+    // Start webcam preview with video/audio constraints
+    const constraints = {
+        video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
         audio: true
-    })
+    };
+    
+    navigator.mediaDevices.getUserMedia(constraints)
     .then(stream => {
-        localCameraStream = stream;
-        const previewEl = document.getElementById('snap-webcam-preview');
-        previewEl.srcObject = stream;
-        previewEl.muted = true;
-        
-        previewEl.onloadedmetadata = () => {
-            previewEl.play().then(() => {
-                startCanvasDrawLoop();
-            });
-        };
+        setupWebcamStream(stream);
     })
     .catch(err => {
-        console.error("Webcam access failed:", err);
-        alert("Unable to access camera or microphone. Please check permissions! (कैमरा एक्सेस की अनुमति दें)");
-        closeSnapchatCamera();
+        console.warn("Retrying webcam access without audio:", err);
+        // Fall back to video-only if microphone access fails or is denied
+        navigator.mediaDevices.getUserMedia({
+            video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } }
+        })
+        .then(stream => {
+            setupWebcamStream(stream);
+        })
+        .catch(err2 => {
+            console.error("Webcam access failed completely:", err2);
+            alert("Unable to access camera. Please check permissions! (कैमरा एक्सेस की अनुमति दें)");
+            closeSnapchatCamera();
+        });
     });
+}
+
+function setupWebcamStream(stream) {
+    localCameraStream = stream;
+    const previewEl = document.getElementById('snap-webcam-preview');
+    if (!previewEl) return;
+    
+    previewEl.srcObject = stream;
+    previewEl.muted = true;
+    
+    previewEl.onloadedmetadata = () => {
+        previewEl.play()
+        .then(() => {
+            startCanvasDrawLoop();
+        })
+        .catch(e => {
+            console.warn("Forcing draw loop due to autoplay play() rejection:", e);
+            startCanvasDrawLoop();
+        });
+    };
+    
+    // Fallback if metadata event is delayed
+    setTimeout(() => {
+        if (previewEl.paused) {
+            previewEl.play().then(() => startCanvasDrawLoop()).catch(() => startCanvasDrawLoop());
+        }
+    }, 500);
 }
 
 function closeSnapchatCamera() {
