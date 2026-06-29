@@ -69,7 +69,7 @@ TEMPLATES = [
 WSGI_APPLICATION = 'bharatsocial.wsgi.application'
 
 # Database Setup (Supports DATABASE_URL, individual PG variables, or SQLite fallback)
-DATABASE_URL = os.environ.get('DATABASE_URL')
+DATABASE_URL = os.environ.get('DATABASE_URL') or os.environ.get('POSTGRES_URL')
 DB_NAME = os.environ.get('DB_NAME')
 DB_USER = os.environ.get('DB_USER')
 DB_PASSWORD = os.environ.get('DB_PASSWORD')
