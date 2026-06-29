@@ -772,48 +772,53 @@ function openSnapchatCamera() {
     generateLenses();
     
     const modal = document.getElementById('snapchat-camera-modal');
-    modal.style.display = 'flex';
+    if (modal) modal.style.display = 'flex';
     
     // Reset canvas display & preview controls
-    document.getElementById('snap-camera-canvas').style.display = 'block';
-    document.getElementById('snap-recorded-preview').style.display = 'none';
+    const canvasEl = document.getElementById('snap-camera-canvas');
+    if (canvasEl) canvasEl.style.display = 'block';
+    
+    const recordedPreview = document.getElementById('snap-recorded-preview');
+    if (recordedPreview) recordedPreview.style.display = 'none';
     
     // Populate lenses carousel
     const carousel = document.getElementById('snap-lenses-carousel');
-    carousel.innerHTML = '';
-    
-    SNAP_LENSES.forEach((lens, index) => {
-        const item = document.createElement('div');
-        item.className = `snap-lens-item ${lens.id === 'none' ? 'active' : ''}`;
-        item.style.filter = lens.css;
-        
-        let labelName = lens.name.split(' ')[0];
-        if (lens.id.startsWith('beauty-')) {
-            labelName = lens.name;
-        }
-        
-        item.innerHTML = `<span style="font-size:8px; line-height: 1.1; overflow:hidden; text-overflow:ellipsis; display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical; width:100%; font-weight: bold; white-space: normal;">${labelName}</span>`;
-        item.onclick = (e) => {
-            e.stopPropagation();
-            selectSnapLens(lens.id);
-        };
-        carousel.appendChild(item);
-    });
+    if (carousel) {
+        carousel.innerHTML = '';
+        SNAP_LENSES.forEach((lens, index) => {
+            const item = document.createElement('div');
+            item.className = `snap-lens-item ${lens.id === 'none' ? 'active' : ''}`;
+            item.style.filter = lens.css;
+            
+            let labelName = lens.name.split(' ')[0];
+            if (lens.id.startsWith('beauty-')) {
+                labelName = lens.name;
+            }
+            
+            item.innerHTML = `<span style="font-size:8px; line-height: 1.1; overflow:hidden; text-overflow:ellipsis; display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical; width:100%; font-weight: bold; white-space: normal;">${labelName}</span>`;
+            item.onclick = (e) => {
+                e.stopPropagation();
+                selectSnapLens(lens.id);
+            };
+            carousel.appendChild(item);
+        });
+    }
     
     // Populate props carousel
     const propsCarousel = document.getElementById('snap-props-carousel');
-    propsCarousel.innerHTML = '';
-    
-    AR_PROPS.forEach((prop, index) => {
-        const item = document.createElement('div');
-        item.className = `snap-prop-item ${prop.id === 'none' ? 'active' : ''}`;
-        item.innerHTML = `<span style="font-size:16px; margin-bottom: 2px;">${prop.emoji || '❌'}</span><span style="font-size:7px; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%;">${prop.name}</span>`;
-        item.onclick = (e) => {
-            e.stopPropagation();
-            selectARProp(prop.id);
-        };
-        propsCarousel.appendChild(item);
-    });
+    if (propsCarousel) {
+        propsCarousel.innerHTML = '';
+        AR_PROPS.forEach((prop, index) => {
+            const item = document.createElement('div');
+            item.className = `snap-prop-item ${prop.id === 'none' ? 'active' : ''}`;
+            item.innerHTML = `<span style="font-size:16px; margin-bottom: 2px;">${prop.emoji || '❌'}</span><span style="font-size:7px; font-weight:bold; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%;">${prop.name}</span>`;
+            item.onclick = (e) => {
+                e.stopPropagation();
+                selectARProp(prop.id);
+            };
+            propsCarousel.appendChild(item);
+        });
+    }
     
     // Start webcam preview with video/audio constraints
     const constraints = {
