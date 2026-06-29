@@ -17,10 +17,28 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
-from django.conf.urls.static import static
+from django.views.static import serve
+from django.http import Http404
+import os
+
+def serve_media_custom(request, path):
+    # Try /tmp/media first
+    tmp_dir = '/tmp/media'
+    tmp_file_path = os.path.join(tmp_dir, path)
+    if os.path.exists(tmp_file_path):
+        return serve(request, path, document_root=tmp_dir)
+        
+    # Try local project media next
+    local_dir = os.path.join(settings.BASE_DIR, 'media')
+    local_file_path = os.path.join(local_dir, path)
+    if os.path.exists(local_file_path):
+        return serve(request, path, document_root=local_dir)
+        
+    raise Http404("Media file not found")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('media/<path:path>', serve_media_custom, name='serve_media_custom'),
     path('', include('accounts.urls')),
     path('', include('posts.urls')),
     path('', include('reels.urls')),
@@ -29,8 +47,4 @@ urlpatterns = [
     path('', include('notifications.urls')),
     path('api/recommendation/', include('recommendation.urls')),
 ]
-
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
