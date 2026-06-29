@@ -68,14 +68,29 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'bharatsocial.wsgi.application'
 
-# Database Setup (PostgreSQL with SQLite fallback)
+# Database Setup (Supports DATABASE_URL, individual PG variables, or SQLite fallback)
+DATABASE_URL = os.environ.get('DATABASE_URL')
 DB_NAME = os.environ.get('DB_NAME')
 DB_USER = os.environ.get('DB_USER')
 DB_PASSWORD = os.environ.get('DB_PASSWORD')
 DB_HOST = os.environ.get('DB_HOST', 'localhost')
 DB_PORT = os.environ.get('DB_PORT', '5432')
 
-if DB_NAME and DB_USER and DB_PASSWORD:
+if DATABASE_URL:
+    import urllib.parse
+    # Suppress SSL errors for serverless environments
+    parsed = urllib.parse.urlparse(DATABASE_URL)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': parsed.path[1:],
+            'USER': parsed.username,
+            'PASSWORD': parsed.password,
+            'HOST': parsed.hostname,
+            'PORT': parsed.port or 5432,
+        }
+    }
+elif DB_NAME and DB_USER and DB_PASSWORD:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
