@@ -70,6 +70,14 @@
             
             <!-- Bottom controls -->
             <div class="chat-input-area">
+                <!-- Snapchat Camera Button -->
+                <button class="chat-file-btn" onclick="openSnapchatCamera()" title="Record Disappearing Snap" style="color: #fffc00; margin-right: 6px;">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+                        <circle cx="12" cy="13" r="4"/>
+                    </svg>
+                </button>
+                
                 <!-- Image upload hidden trigger -->
                 <button class="chat-file-btn" onclick="triggerImageUpload()">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
@@ -84,6 +92,42 @@
         </div>
         
     </div>
+<!-- Snapchat Camera Modal -->
+<div id="snapchat-camera-modal" class="snapchat-modal-overlay" style="display: none;">
+    <div class="snapchat-modal-wrapper">
+        <div class="snap-header">
+            <span style="font-weight: 700; color: #fffc00; font-size: 16px;">👻 Snapchat Lenses Camera</span>
+            <span class="snap-close" onclick="closeSnapchatCamera()">&times;</span>
+        </div>
+        
+        <!-- Camera Preview Container -->
+        <div class="snap-preview-container">
+            <video id="snap-webcam-preview" autoplay playsinline style="width: 100%; height: 100%; object-fit: cover;"></video>
+            <video id="snap-recorded-preview" loop muted playsinline style="width: 100%; height: 100%; object-fit: cover; display: none;"></video>
+            
+            <!-- Lens Selector Overlay (Horizontal Scroll) -->
+            <div class="snap-lenses-carousel" id="snap-lenses-carousel">
+                <!-- Loaded dynamically by JS -->
+            </div>
+            
+            <!-- Recording Countdown Circle -->
+            <div class="snap-countdown-overlay" id="snap-countdown-overlay" style="display: none;">
+                <svg class="countdown-svg" viewBox="0 0 36 36">
+                    <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path class="circle" stroke-dasharray="0, 100" id="countdown-progress-circle" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                </svg>
+                <div class="countdown-text" id="countdown-timer-text">5.0s</div>
+            </div>
+        </div>
+        
+        <!-- Controls -->
+        <div class="snap-controls">
+            <button class="snap-action-btn record" id="snap-record-btn" onclick="toggleSnapRecording()">🔴 Record 5s Snap</button>
+            <button class="snap-action-btn send" id="snap-send-btn" onclick="sendSnapToActiveThread()" style="display: none;">✉️ Send Snap</button>
+            <button class="snap-action-btn cancel" id="snap-retake-btn" onclick="retakeSnap()" style="display: none;">🔄 Retake</button>
+        </div>
+    </div>
+</div>
 
 </div>
 {% endblock %}

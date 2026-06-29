@@ -380,3 +380,187 @@
         display: inline-flex !important;
     }
 }
+
+/* --- Snapchat Camera Styles --- */
+.snapchat-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(0,0,0,0.95);
+    z-index: 1200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+}
+.snapchat-modal-wrapper {
+    width: 100%;
+    max-width: 420px;
+    height: 90vh;
+    max-height: 750px;
+    display: flex;
+    flex-direction: column;
+    padding: 16px;
+    background-color: #000;
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border-color);
+}
+.snap-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+.snap-close {
+    font-size: 28px;
+    cursor: pointer;
+    color: #fffc00;
+}
+.snap-preview-container {
+    flex-grow: 1;
+    position: relative;
+    background-color: #111;
+    border-radius: var(--radius-md);
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+.snap-lenses-carousel {
+    position: absolute;
+    bottom: 12px;
+    left: 0;
+    width: 100%;
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding: 10px 16px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+    z-index: 10;
+}
+.snap-lenses-carousel::-webkit-scrollbar {
+    display: none;
+}
+.snap-lens-item {
+    flex: 0 0 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: 2px solid white;
+    background-color: rgba(255,255,255,0.25);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 700;
+    text-align: center;
+    scroll-snap-align: center;
+    transition: transform 0.1s ease, border-color 0.1s ease;
+    text-shadow: 1px 1px 2px black;
+    color: white;
+}
+.snap-lens-item.active {
+    border-color: #fffc00;
+    transform: scale(1.15);
+    background-color: rgba(255, 252, 0, 0.3);
+}
+.snap-controls {
+    display: flex;
+    gap: 12px;
+}
+.snap-action-btn {
+    flex: 1;
+    padding: 14px;
+    border-radius: 30px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    text-align: center;
+    transition: var(--transition);
+}
+.snap-action-btn.record {
+    background-color: #fffc00;
+    color: black;
+}
+.snap-action-btn.send {
+    background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+    color: white;
+}
+.snap-action-btn.cancel {
+    background-color: #222;
+    color: white;
+    border: 1px solid var(--border-color);
+}
+.snap-countdown-overlay {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 20;
+}
+.countdown-svg {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+.circle-bg {
+    fill: none;
+    stroke: rgba(255,255,255,0.2);
+    stroke-width: 3;
+}
+.circle {
+    fill: none;
+    stroke: #fffc00;
+    stroke-width: 3;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.05s linear;
+}
+.countdown-text {
+    position: absolute;
+    font-size: 11px;
+    font-weight: 700;
+    color: white;
+}
+
+/* Snap Message Bubble styles */
+.snap-message-placeholder {
+    padding: 12px 18px;
+    background-color: #fffc00;
+    color: #000;
+    border-radius: 20px;
+    font-weight: 700;
+    font-size: 13.5px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    user-select: none;
+    box-shadow: var(--shadow);
+    transition: transform 0.1s ease;
+}
+.snap-message-placeholder:hover {
+    transform: scale(1.03);
+}
+.snap-message-placeholder.expired {
+    background-color: #333 !important;
+    color: #888 !important;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+.snap-message-placeholder.expired:hover {
+    transform: none;
+}
+
+/* Lenses Classes */
+.snap-filter-vintage { filter: sepia(0.6) contrast(1.1) brightness(0.9); }
+.snap-filter-bw { filter: grayscale(1) contrast(1.2); }
+.snap-filter-warm { filter: saturate(1.4) sepia(0.2) hue-rotate(-10deg); }
+.snap-filter-cool { filter: saturate(0.8) hue-rotate(180deg) brightness(1.05); }
+.snap-filter-glow { filter: saturate(1.6) contrast(1.15) brightness(1.1); }
+.snap-filter-neon { filter: hue-rotate(120deg) saturate(2) contrast(1.2); }
+.snap-filter-invert { filter: invert(0.8) contrast(1.1); }
+.snap-filter-blur { filter: blur(2px) saturate(1.2); }

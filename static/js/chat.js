@@ -326,13 +326,36 @@ function loadMessages() {
                 bubbleWrapper.className = `message-bubble-wrapper ${isOutgoing ? 'outgoing' : 'incoming'}`;
                 
                 let mediaHtml = '';
-                if (msg.image) {
-                    mediaHtml = `<img src="${msg.image}" class="message-image" alt="Shared image" onclick="window.open('${msg.image}')">`;
+                let displayMsg = msg.content || "";
+                
+                if (msg.is_snap) {
+                    if (msg.is_expired) {
+                        mediaHtml = `<div class="snap-message-placeholder expired">👻 Snap (Expired)</div>`;
+                        displayMsg = "";
+                    } else {
+                        const isOutgoing = msg.sender_username !== activeUsername;
+                        if (isOutgoing) {
+                            mediaHtml = `<div class="snap-message-placeholder expired">👻 Snap (Sent)</div>`;
+                        } else {
+                            mediaHtml = `
+                                <div class="snap-message-placeholder" onclick="playSnapMessage(${msg.id}, '${msg.image}', '${encodeURIComponent(msg.content)}')">
+                                    <span>👻 View Snap (5s)</span>
+                                </div>
+                            `;
+                        }
+                        displayMsg = "";
+                    }
+                } else if (msg.image) {
+                    const lowerUrl = msg.image.toLowerCase();
+                    if (lowerUrl.endsWith('.mp4') || lowerUrl.endsWith('.mov') || lowerUrl.endsWith('.webm') || lowerUrl.endsWith('.avi')) {
+                        mediaHtml = `<video src="${msg.image}" class="message-image" style="max-width: 240px; max-height: 240px; border-radius: var(--radius-md);" controls></video>`;
+                    } else {
+                        mediaHtml = `<img src="${msg.image}" class="message-image" alt="Shared image" onclick="window.open('${msg.image}')">`;
+                    }
                 }
 
                 // Decrypt message content if E2EE
-                let displayMsg = msg.content || "";
-                if (displayMsg.startsWith(E2EE_PREFIX) && typeof currentLoggedInUsername !== 'undefined') {
+                if (displayMsg && displayMsg.startsWith(E2EE_PREFIX) && typeof currentLoggedInUsername !== 'undefined') {
                     const key = getSharedKey(currentLoggedInUsername, activeUsername);
                     displayMsg = decryptMessage(displayMsg, key);
                 }
@@ -525,4 +548,376 @@ function deleteActiveThread() {
         }
     })
     .catch(err => console.error('Error deleting thread:', err));
+}
+
+// --- Snapchat Lenses Camera & Disappearing Snaps Engine ---
+let localCameraStream = null;
+let mediaRecorderInstance = null;
+let recordedChunks = [];
+let selectedSnapFilter = 'none';
+let recordedSnapBlob = null;
+let recordingCountdownInterval = null;
+const SNAP_RECORDING_DURATION = 5000; // 5 seconds maximum
+
+// Generate 300 Snapchat filters/lenses procedurally
+const SNAP_LENSES = [];
+function generateLenses() {
+    if (SNAP_LENSES.length > 0) return;
+    
+    // Core custom categories
+    const categories = ["Desert", "Aqua", "Lava", "Mint", "Grape", "Peach", "Retro", "Neon", "Cyber", "Forest", "Glow", "Vintage", "Solar", "Ocean", "Sunset", "Sunrise", "Polar", "Cosmic", "Galaxy", "Nebula"];
+    const adjectives = ["Soft", "Deep", "Vibrant", "Dark", "Bright", "Warm", "Cool", "Electric", "Wild", "Magic", "Psychedelic", "Faded", "Glossy", "Matte", "Pastel", "Golden", "Silver", "Neon", "Spectral", "Dreamy"];
+    
+    // Add standard preset styles first
+    SNAP_LENSES.push({ id: 'none', name: 'Normal / None', css: '' });
+    SNAP_LENSES.push({ id: 'vintage', name: 'Vintage (Sepia)', css: 'sepia(0.6) contrast(1.1) brightness(0.9)' });
+    SNAP_LENSES.push({ id: 'bw', name: 'Black & White', css: 'grayscale(1) contrast(1.2)' });
+    SNAP_LENSES.push({ id: 'warm', name: 'Warm Sunshine', css: 'saturate(1.4) sepia(0.2) hue-rotate(-10deg)' });
+    SNAP_LENSES.push({ id: 'cool', name: 'Cool Breeze', css: 'saturate(0.8) hue-rotate(180deg) brightness(1.05)' });
+    SNAP_LENSES.push({ id: 'glow', name: 'Vibrant Glow', css: 'saturate(1.6) contrast(1.15) brightness(1.1)' });
+    SNAP_LENSES.push({ id: 'neon', name: 'Neon Dream', css: 'hue-rotate(120deg) saturate(2) contrast(1.2)' });
+    SNAP_LENSES.push({ id: 'invert', name: 'Color Invert', css: 'invert(0.8) contrast(1.1)' });
+    SNAP_LENSES.push({ id: 'blur', name: 'Soft Focus', css: 'blur(2px) saturate(1.2)' });
+    
+    // Generate up to 300 lenses
+    for (let i = 10; i <= 300; i++) {
+        const hue = (i * 13) % 360;
+        const sat = 100 + ((i * 11) % 120);
+        const con = 90 + ((i * 8) % 50);
+        const bri = 90 + ((i * 6) % 35);
+        const sep = (i % 7 === 0) ? 40 : 0;
+        const gray = (i % 13 === 0) ? 90 : 0;
+        
+        let filterString = `hue-rotate(${hue}deg) saturate(${sat}%) contrast(${con}%) brightness(${bri}%)`;
+        if (sep > 0) filterString += ` sepia(${sep}%)`;
+        if (gray > 0) filterString += ` grayscale(${gray}%)`;
+        
+        const adj = adjectives[i % adjectives.length];
+        const cat = categories[i % categories.length];
+        
+        SNAP_LENSES.push({
+            id: `lens-${i}`,
+            name: `${adj} ${cat} #${i}`,
+            css: filterString
+        });
+    }
+}
+
+function openSnapchatCamera() {
+    if (!activeUsername) {
+        alert("Please select a user to send the snap to first!");
+        return;
+    }
+    
+    generateLenses();
+    
+    const modal = document.getElementById('snapchat-camera-modal');
+    modal.style.display = 'flex';
+    
+    // Populate lenses carousel
+    const carousel = document.getElementById('snap-lenses-carousel');
+    carousel.innerHTML = '';
+    
+    SNAP_LENSES.forEach((lens, index) => {
+        const item = document.createElement('div');
+        item.className = `snap-lens-item ${lens.id === 'none' ? 'active' : ''}`;
+        item.style.filter = lens.css;
+        item.innerHTML = `<span style="font-size:10px;">LENS</span><span style="font-size:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%;">${lens.name.split(' ')[0]}</span>`;
+        item.onclick = (e) => {
+            e.stopPropagation();
+            selectSnapLens(lens.id);
+        };
+        carousel.appendChild(item);
+    });
+    
+    // Start webcam preview
+    navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "user", width: 640, height: 480 },
+        audio: true
+    })
+    .then(stream => {
+        localCameraStream = stream;
+        const previewEl = document.getElementById('snap-webcam-preview');
+        previewEl.srcObject = stream;
+        previewEl.muted = true;
+        previewEl.play().catch(e => console.debug("Camera play error:", e));
+    })
+    .catch(err => {
+        console.error("Webcam access failed:", err);
+        alert("Unable to access camera or microphone. Please check permissions! (कैमरा एक्सेस की अनुमति दें)");
+        closeSnapchatCamera();
+    });
+}
+
+function closeSnapchatCamera() {
+    const modal = document.getElementById('snapchat-camera-modal');
+    if (modal) modal.style.display = 'none';
+    
+    // Stop recording timer
+    if (recordingCountdownInterval) {
+        clearInterval(recordingCountdownInterval);
+        recordingCountdownInterval = null;
+    }
+    
+    // Stop webcam tracks
+    if (localCameraStream) {
+        localCameraStream.getTracks().forEach(track => track.stop());
+        localCameraStream = null;
+    }
+    
+    // Stop recorded preview
+    const recordedPreview = document.getElementById('snap-recorded-preview');
+    if (recordedPreview) {
+        recordedPreview.pause();
+        recordedPreview.src = '';
+    }
+    
+    retakeSnap();
+}
+
+function selectSnapLens(lensId) {
+    selectedSnapFilter = lensId;
+    
+    // Update active class in carousel
+    const items = document.querySelectorAll('.snap-lens-item');
+    items.forEach((item, idx) => {
+        const lensObj = SNAP_LENSES[idx];
+        if (lensObj && lensObj.id === lensId) {
+            item.classList.add('active');
+            item.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        } else {
+            item.classList.remove('active');
+        }
+    });
+    
+    // Get style
+    const selectedLens = SNAP_LENSES.find(l => l.id === lensId);
+    const cssStyle = selectedLens ? selectedLens.css : '';
+    
+    // Apply filters
+    const webcamPreview = document.getElementById('snap-webcam-preview');
+    const recordedPreview = document.getElementById('snap-recorded-preview');
+    if (webcamPreview) webcamPreview.style.filter = cssStyle;
+    if (recordedPreview) recordedPreview.style.filter = cssStyle;
+}
+
+function toggleSnapRecording() {
+    if (!localCameraStream) return;
+    
+    recordedChunks = [];
+    let options = { mimeType: 'video/webm;codecs=vp9,opus' };
+    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        options = { mimeType: 'video/webm;codecs=vp8,opus' };
+        if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+            options = { mimeType: 'video/mp4' };
+        }
+    }
+    
+    try {
+        mediaRecorderInstance = new MediaRecorder(localCameraStream, options);
+    } catch (e) {
+        mediaRecorderInstance = new MediaRecorder(localCameraStream);
+    }
+    
+    mediaRecorderInstance.ondataavailable = (event) => {
+        if (event.data && event.data.size > 0) {
+            recordedChunks.push(event.data);
+        }
+    };
+    
+    mediaRecorderInstance.onstop = () => {
+        recordedSnapBlob = new Blob(recordedChunks, { type: mediaRecorderInstance.mimeType });
+        
+        // Hide webcam preview and show recorded video preview
+        const webcamPreview = document.getElementById('snap-webcam-preview');
+        const recordedPreview = document.getElementById('snap-recorded-preview');
+        webcamPreview.style.display = 'none';
+        recordedPreview.style.display = 'block';
+        recordedPreview.src = URL.createObjectURL(recordedSnapBlob);
+        recordedPreview.play().catch(e => console.debug("Preview video error:", e));
+        
+        // Show send/retake actions, hide record button
+        document.getElementById('snap-record-btn').style.display = 'none';
+        document.getElementById('snap-send-btn').style.display = 'block';
+        document.getElementById('snap-retake-btn').style.display = 'block';
+        
+        // Hide lenses carousel during preview
+        document.getElementById('snap-lenses-carousel').style.display = 'none';
+        document.getElementById('snap-countdown-overlay').style.display = 'none';
+    };
+    
+    // Start recording
+    mediaRecorderInstance.start();
+    
+    // Start countdown timer overlay UI
+    const countdownOverlay = document.getElementById('snap-countdown-overlay');
+    const countdownProgress = document.getElementById('countdown-progress-circle');
+    const countdownText = document.getElementById('countdown-timer-text');
+    countdownOverlay.style.display = 'flex';
+    
+    let timeRemaining = SNAP_RECORDING_DURATION;
+    const intervalTick = 50;
+    
+    recordingCountdownInterval = setInterval(() => {
+        timeRemaining -= intervalTick;
+        if (timeRemaining <= 0) {
+            timeRemaining = 0;
+            clearInterval(recordingCountdownInterval);
+            recordingCountdownInterval = null;
+            if (mediaRecorderInstance && mediaRecorderInstance.state !== 'inactive') {
+                mediaRecorderInstance.stop();
+            }
+        }
+        
+        // Update countdown text & stroke offset
+        countdownText.textContent = `${(timeRemaining / 1000).toFixed(1)}s`;
+        const percentage = (timeRemaining / SNAP_RECORDING_DURATION) * 100;
+        countdownProgress.setAttribute('stroke-dasharray', `${percentage}, 100`);
+    }, intervalTick);
+    
+    document.getElementById('snap-record-btn').textContent = '⏹️ Recording...';
+    document.getElementById('snap-record-btn').disabled = true;
+}
+
+function retakeSnap() {
+    if (recordingCountdownInterval) {
+        clearInterval(recordingCountdownInterval);
+        recordingCountdownInterval = null;
+    }
+    
+    // Hide previews, clear fields
+    const webcamPreview = document.getElementById('snap-webcam-preview');
+    const recordedPreview = document.getElementById('snap-recorded-preview');
+    webcamPreview.style.display = 'block';
+    recordedPreview.style.display = 'none';
+    recordedPreview.pause();
+    recordedPreview.src = '';
+    
+    document.getElementById('snap-record-btn').style.display = 'block';
+    document.getElementById('snap-record-btn').disabled = false;
+    document.getElementById('snap-record-btn').textContent = '🔴 Record 5s Snap';
+    document.getElementById('snap-send-btn').style.display = 'none';
+    document.getElementById('snap-retake-btn').style.display = 'none';
+    
+    document.getElementById('snap-lenses-carousel').style.display = 'flex';
+    document.getElementById('snap-countdown-overlay').style.display = 'none';
+    recordedSnapBlob = null;
+}
+
+function sendSnapToActiveThread() {
+    if (!recordedSnapBlob || !activeUsername) return;
+    
+    const sendBtn = document.getElementById('snap-send-btn');
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Sending snap...';
+    
+    const csrfToken = getCookie('csrftoken');
+    const formData = new FormData();
+    // Convert WebM recorded snap to a file
+    const file = new File([recordedSnapBlob], `snap_${Date.now()}.webm`, { type: recordedSnapBlob.type });
+    formData.append('image', file); // We reuse the image field which supports files/videos
+    formData.append('is_snap', 'true');
+    
+    // Save chosen filter settings in content field so client plays it with the exact selected style
+    const selectedLens = SNAP_LENSES.find(l => l.id === selectedSnapFilter);
+    const filterConfig = {
+        filterId: selectedSnapFilter,
+        css: selectedLens ? selectedLens.css : ''
+    };
+    formData.append('content', JSON.stringify(filterConfig));
+
+    fetch(`/api/chat/messages/${activeUsername}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken
+        },
+        body: formData
+    })
+    .then(res => {
+        if (res.ok) {
+            closeSnapchatCamera();
+            loadMessages();
+        } else {
+            alert('Failed to send snap message.');
+            sendBtn.disabled = false;
+            sendBtn.textContent = '✉️ Send Snap';
+        }
+    })
+    .catch(err => {
+        console.error('Error uploading snap:', err);
+        alert('Upload failed.');
+        sendBtn.disabled = false;
+        sendBtn.textContent = '✉️ Send Snap';
+    });
+}
+
+function playSnapMessage(msgId, videoUrl, filterConfigJsonStr) {
+    let filterCss = '';
+    try {
+        const config = JSON.parse(decodeURIComponent(filterConfigJsonStr));
+        filterCss = config.css || '';
+    } catch(e) {}
+    
+    // Create Snap Player modal on the fly
+    let player = document.getElementById('snap-player-overlay');
+    if (!player) {
+        player = document.createElement('div');
+        player.id = 'snap-player-overlay';
+        player.style.cssText = `
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #000;
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        document.body.appendChild(player);
+    }
+    
+    player.innerHTML = `
+        <div style="position: relative; width: 100%; max-width: 420px; height: 100vh; display: flex; align-items: center; justify-content: center;">
+            <video src="${videoUrl}" autoplay playsinline style="width: 100%; height: 100%; object-fit: contain; filter: ${filterCss};" id="snap-play-video"></video>
+            
+            <!-- Floating Timer Indicator -->
+            <div style="position: absolute; top: 20px; right: 20px; background-color: rgba(0,0,0,0.6); padding: 8px 16px; border-radius: 20px; font-weight: 700; color: #fffc00; font-size: 13px;" id="snap-play-timer">
+                ⏱️ 5.0s
+            </div>
+        </div>
+    `;
+    
+    player.style.display = 'flex';
+    
+    // Start 5 seconds play countdown
+    const timerText = document.getElementById('snap-play-timer');
+    let timeRemaining = 5000;
+    const intervalTick = 100;
+    
+    const playTimerInterval = setInterval(() => {
+        timeRemaining -= intervalTick;
+        if (timeRemaining <= 0) {
+            timeRemaining = 0;
+            clearInterval(playTimerInterval);
+            
+            // Close player
+            player.style.display = 'none';
+            const vid = document.getElementById('snap-play-video');
+            if (vid) vid.pause();
+            
+            // Delete snap instantly from server so it disappears forever
+            const csrfToken = getCookie('csrftoken');
+            fetch(`/api/chat/messages/delete/${msgId}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
+            })
+            .then(() => {
+                chatMessagesList = []; // force reload
+                loadMessages();
+            });
+        }
+        
+        timerText.textContent = `⏱️ ${(timeRemaining / 1000).toFixed(1)}s`;
+    }, intervalTick);
 }

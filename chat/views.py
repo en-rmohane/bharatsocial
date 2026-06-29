@@ -25,8 +25,10 @@ def get_chat_users(request):
     Get a list of users with whom the current user has exchanged messages (recent_chats),
     plus suggestions (followed users and other users) to start new conversations.
     """
-    # Auto-delete messages older than 5 minutes
-    Message.objects.filter(created_at__lt=timezone.now() - timezone.timedelta(minutes=5)).delete()
+    # Auto-delete messages older than 5 minutes (excluding snaps)
+    Message.objects.filter(is_snap=False, created_at__lt=timezone.now() - timezone.timedelta(minutes=5)).delete()
+    # Auto-delete expired snaps
+    Message.objects.filter(is_snap=True, expires_at__lt=timezone.now()).delete()
     
     user_id = request.user.id
     
@@ -112,8 +114,10 @@ def get_chat_users(request):
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
 def message_list_create_api(request, username):
-    # Auto-delete messages older than 5 minutes
-    Message.objects.filter(created_at__lt=timezone.now() - timezone.timedelta(minutes=5)).delete()
+    # Auto-delete messages older than 5 minutes (excluding snaps)
+    Message.objects.filter(is_snap=False, created_at__lt=timezone.now() - timezone.timedelta(minutes=5)).delete()
+    # Auto-delete expired snaps
+    Message.objects.filter(is_snap=True, expires_at__lt=timezone.now()).delete()
     
     other_user = get_object_or_404(CustomUser, username=username)
     
@@ -132,15 +136,22 @@ def message_list_create_api(request, username):
     if request.method == 'POST':
         content = request.data.get('content', '')
         image = request.FILES.get('image')
+        is_snap = request.data.get('is_snap') == 'true'
         
         if not content and not image:
             return Response({"error": "Content or image is required"}, status=400)
             
+        expires_at = None
+        if is_snap:
+            expires_at = timezone.now() + timezone.timedelta(hours=1)
+
         message = Message.objects.create(
             sender=request.user,
             receiver=other_user,
             content=content,
-            image=image
+            image=image,
+            is_snap=is_snap,
+            expires_at=expires_at
         )
         
         # Trigger Message Notification
