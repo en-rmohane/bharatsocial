@@ -300,6 +300,14 @@
         text-align: center;
         padding: 0 10px;
     }
+    .edit-profile-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+    .edit-profile-row label {
+        text-align: left;
+    }
     .profile-meta {
         margin-top: 10px;
         align-items: center;

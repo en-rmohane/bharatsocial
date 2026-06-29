@@ -93,6 +93,37 @@
         align-items: center;
         justify-content: space-between;
     }
+
+    @media (max-width: 768px) {
+        .post-detail-layout {
+            grid-template-columns: 1fr;
+            height: auto;
+            margin: 0;
+            border: none;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        .detail-left {
+            height: auto;
+            aspect-ratio: 1/1;
+        }
+        .detail-right {
+            border-left: none;
+            border-top: 1px solid var(--border-color);
+            height: auto;
+        }
+        .comments-scroll-area {
+            max-height: 350px;
+            flex-grow: unset;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .post-detail-layout {
+            margin-top: 50px;
+            margin-bottom: 56px;
+        }
+    }
 </style>
 {% endblock %}
 

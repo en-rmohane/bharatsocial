@@ -88,6 +88,35 @@
     .tag-chip:hover {
         background-color: var(--hover-bg);
     }
+
+    @media (max-width: 480px) {
+        .explore-search-container {
+            padding: 0 10px;
+            margin: 10px auto;
+        }
+        .search-autocomplete-panel {
+            left: 10px;
+            right: 10px;
+            top: 48px;
+        }
+        .trending-tags-row {
+            padding: 8px 10px;
+            gap: 8px;
+        }
+        .tag-chip {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+        .profile-layout {
+            padding: 0 !important;
+        }
+        .profile-grid {
+            gap: 3px;
+        }
+        .explore-grid-container {
+            padding: 0 10px !important;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -111,9 +140,9 @@
         <div class="tag-chip" onclick="filterByHashtag('{{ tag.name }}')">#{{ tag.name }}</div>
         {% endfor %}
     </div>
-
+ 
     <!-- Explore grid posts -->
-    <div style="padding: 0 20px;">
+    <div class="explore-grid-container" style="padding: 0 20px;">
         <div class="profile-grid" id="explore-grid-list">
             <!-- Dynamic Grid elements injected by JS -->
         </div>
