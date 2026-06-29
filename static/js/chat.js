@@ -569,15 +569,63 @@ let canvasAnimationId = null;
 
 const AR_PROPS = [
     { id: 'none', name: '❌ Clear Mask', emoji: '' },
+    // --- Glasses & Eyewear (15 items) ---
     { id: 'goggles', name: '🕶️ Cool Shades', emoji: '🕶️' },
+    { id: 'glasses', name: '👓 Nerd Glasses', emoji: '👓' },
+    { id: 'starglasses', name: '🌟 Star Glasses', emoji: '🌟' },
+    { id: 'heartglasses', name: '❤️ Heart Eyes', emoji: '❤️' },
+    { id: 'pinkshades', name: '🕶️🌸 Pink Shades', emoji: '🕶️' },
+    { id: 'anime-eyes', name: '👀 Anime Eyes', emoji: '👀' },
+    { id: 'monocle', name: '🧐 Monocle Glass', emoji: '🧐' },
+    { id: 'thuglife', name: '🕶️ Thug Life', emoji: '🕶️' },
+    { id: 'fire-eyes', name: '🔥 Fire Eyes', emoji: '🔥' },
+    { id: 'money-eyes', name: '🤑 Dollar Eyes', emoji: '🤑' },
+    { id: 'rainbow-glasses', name: '🌈 Rainbow Visor', emoji: '🥽' },
+    { id: 'cyber-visor', name: '🤖 Cyber Goggles', emoji: '🥽' },
+    { id: 'alien-visor', name: '👽 Alien Visor', emoji: '🥽' },
+    { id: '3d-glasses', name: '🕶️ 3D Glasses', emoji: '🕶️' },
+    { id: 'pirate-patch', name: '🏴‍☠️ Pirate Patch', emoji: '👁️‍🗨️' },
+
+    // --- Hats & Crowns (15 items) ---
     { id: 'crown', name: '👑 Royal Crown', emoji: '👑' },
     { id: 'hat', name: '🎩 Retro Hat', emoji: '🎩' },
+    { id: 'tiara', name: '👑✨ Princess Tiara', emoji: '👑' },
+    { id: 'heart-crown', name: '👑💕 Heart Crown', emoji: '👑' },
+    { id: 'flower-crown', name: '🌸👑 Flower Tiara', emoji: '👑' },
+    { id: 'chef-hat', name: '👨‍🍳 Chef Hat', emoji: '👨‍🍳' },
+    { id: 'cowboy-hat', name: '🤠 Cowboy Hat', emoji: '🤠' },
+    { id: 'santa-hat', name: '🎅 Santa Hat', emoji: '🎅' },
+    { id: 'graduation-cap', name: '🎓 Graduate Cap', emoji: '🎓' },
+    { id: 'witch-hat', name: '🧙 Witch Hat', emoji: '🧙' },
+    { id: 'military-helmet', name: '🪖 Commando Cap', emoji: '🪖' },
+    { id: 'police-cap', name: '👮 Police Cap', emoji: '👮' },
+    { id: 'birthday-cap', name: '🥳 Party Cap', emoji: '🥳' },
+    { id: 'halo', name: '😇 Angel Halo', emoji: '😇' },
+    { id: 'turband', name: '👳 Desi Turban', emoji: '👳' },
+
+    // --- Animals & Face Features (10 items) ---
     { id: 'catears', name: '🐱 Cat Ears', emoji: '🐱' },
-    { id: 'bow', name: '🎀 Pink Bow', emoji: '🎀' },
+    { id: 'dogears', name: '🐶 Dog Ears', emoji: '🐶' },
+    { id: 'bunny-ears', name: '🐰 Bunny Ears', emoji: '🐰' },
     { id: 'horns', name: '😈 Neon Horns', emoji: '😈' },
-    { id: 'glasses', name: '👓 Nerd Glasses', emoji: '👓' },
+    { id: 'mustache', name: '👨 Gentleman Mustache', emoji: '👨' },
+    { id: 'clown-nose', name: '🤡 Clown Nose', emoji: '🤡' },
+    { id: 'fox-ears', name: '🦊 Fox Ears', emoji: '🦊' },
+    { id: 'panda-face', name: '🐼 Panda Mask', emoji: '🐼' },
+    { id: 'lion-mane', name: '🦁 Lion Mane', emoji: '🦁' },
+    { id: 'monkey-face', name: '🐵 Monkey Mask', emoji: '🐵' },
+
+    // --- Funny Masks & Overlays (10 items) ---
     { id: 'mask', name: '🎭 Carnival Mask', emoji: '🎭' },
-    { id: 'starglasses', name: '🌟 Star Glasses', emoji: '🌟' }
+    { id: 'gas-mask', name: '😷 Gas Mask', emoji: '😷' },
+    { id: 'skull-mask', name: '💀 Skull Face', emoji: '💀' },
+    { id: 'alien-face', name: '👽 Alien Face', emoji: '👽' },
+    { id: 'robot-face', name: '🤖 Robot Mask', emoji: '🤖' },
+    { id: 'pumpkin-head', name: '🎃 Pumpkin Head', emoji: '🎃' },
+    { id: 'ghost-mask', name: '👻 Ghost Mask', emoji: '👻' },
+    { id: 'star-crown', name: '✨ Star Aura', emoji: '✨' },
+    { id: 'butterfly-crown', name: '🦋 Butterfly Tiara', emoji: '🦋' },
+    { id: 'heart-aura', name: '💖 Heart Aura', emoji: '💖' }
 ];
 
 // Generate 300 Snapchat filters/lenses procedurally
