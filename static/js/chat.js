@@ -570,6 +570,11 @@ function generateLenses() {
     
     // Add standard preset styles first
     SNAP_LENSES.push({ id: 'none', name: 'Normal / None', css: '' });
+    SNAP_LENSES.push({ id: 'beauty-fair', name: '✨ Fair Glow (गोरा रंग)', css: 'brightness(1.25) contrast(0.95) saturate(1.05)' });
+    SNAP_LENSES.push({ id: 'beauty-bright', name: '💖 Super Bright (अल्ट्रा गोरा)', css: 'brightness(1.4) contrast(0.9) saturate(1.1)' });
+    SNAP_LENSES.push({ id: 'beauty-tan', name: '☀️ Sun Tan Look (गहू वर्ण)', css: 'brightness(0.9) contrast(1.1) sepia(0.15) saturate(1.2)' });
+    SNAP_LENSES.push({ id: 'beauty-angel', name: '👼 Angelic Smooth', css: 'brightness(1.15) contrast(0.9) saturate(0.95) blur(0.3px)' });
+    SNAP_LENSES.push({ id: 'beauty-gold', name: '💛 Golden Shine', css: 'sepia(0.2) brightness(1.2) contrast(1.05) saturate(1.3)' });
     SNAP_LENSES.push({ id: 'vintage', name: 'Vintage (Sepia)', css: 'sepia(0.6) contrast(1.1) brightness(0.9)' });
     SNAP_LENSES.push({ id: 'bw', name: 'Black & White', css: 'grayscale(1) contrast(1.2)' });
     SNAP_LENSES.push({ id: 'warm', name: 'Warm Sunshine', css: 'saturate(1.4) sepia(0.2) hue-rotate(-10deg)' });
@@ -622,7 +627,13 @@ function openSnapchatCamera() {
         const item = document.createElement('div');
         item.className = `snap-lens-item ${lens.id === 'none' ? 'active' : ''}`;
         item.style.filter = lens.css;
-        item.innerHTML = `<span style="font-size:10px;">LENS</span><span style="font-size:8px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%;">${lens.name.split(' ')[0]}</span>`;
+        
+        let labelName = lens.name.split(' ')[0];
+        if (lens.id.startsWith('beauty-')) {
+            labelName = lens.name;
+        }
+        
+        item.innerHTML = `<span style="font-size:8px; line-height: 1.1; overflow:hidden; text-overflow:ellipsis; display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical; width:100%; font-weight: bold; white-space: normal;">${labelName}</span>`;
         item.onclick = (e) => {
             e.stopPropagation();
             selectSnapLens(lens.id);
